@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="st">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../wikitext/target/classes/com/jr2jme/st" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

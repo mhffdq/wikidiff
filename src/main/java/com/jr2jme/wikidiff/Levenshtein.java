@@ -14,6 +14,7 @@ public class Levenshtein {
         for(int d=0;d<=max;d++){
             for(int k=-d;k<=d;k+=2){
                 if(k<=-m||n<k){
+                    k++;
                     continue;
                 }
                 int x =Math.max(-d,m);

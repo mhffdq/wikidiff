@@ -33,10 +33,7 @@ public class wikidiffcore {
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class,String.class);
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));
         List<String> prev_text=new ArrayList();
-        prev_text.add("hoge");
-        prev_text.add("piyo");
-        prev_text.add("hoge");
-        prev_text.add("hoge");
+        Object[] textandeditor =new Object[2];
         for(Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();

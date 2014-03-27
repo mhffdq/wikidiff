@@ -32,7 +32,11 @@ public class wikidiffcore {
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class,String.class);
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));
-        List<String> pre_text=null;
+        List<String> prev_text=new ArrayList();
+        prev_text.add("hoge");
+        prev_text.add("piyo");
+        prev_text.add("hoge");
+        prev_text.add("hoge");
         for(Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
@@ -43,11 +47,12 @@ public class wikidiffcore {
             }
             List<String> current_text=new ArrayList<String>();
             for(Token token:tokens){
-                System.out.println(token.getSurface());
+                //System.out.println(token.getSurface());
                 current_text.add(token.getSurface());
             }
-            Levenshtein.diff(current_text, pre_text);
-            pre_text=current_text;
+            System.out.println(Levenshtein2.diff(prev_text, current_text));
+            prev_text=current_text;
         }
+
     }
 }

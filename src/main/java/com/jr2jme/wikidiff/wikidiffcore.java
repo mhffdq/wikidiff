@@ -49,8 +49,9 @@ public class wikidiffcore {
             }
             List<String[]> diff = Levenshtein2.diff(prev_text, current_text);
             List<String[]> data=new ArrayList<String[]>();
+            int i = 0;
+
             for(String[] st:diff){
-                int i = 0;
                 if(st[1].equals("i")){
                     String[] tes ={st[0],wikitext.getName()};
                     data.add(tes);
@@ -63,11 +64,8 @@ public class wikidiffcore {
                     data.add(tes);
                     i++;
                 }
-                predata=data;
             }
-            for(String[] st:data){
-                System.out.println(st[0]+ " "+st[1]);
-            }
+            predata=data;
             prev_text=current_text;
         }
 

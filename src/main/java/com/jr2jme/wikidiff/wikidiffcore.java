@@ -17,9 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by Hirotaka on 2014/03/24.
+ * Created by JR2JME on 2014/03/24.
  */
-
 public class wikidiffcore {
     public static void main(String[] arg){
         Mongo mongo=null;

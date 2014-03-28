@@ -65,6 +65,10 @@ public class wikidiffcore {
                     i++;
                 }
             }
+            DBCollection dbCollection2=db.getCollection("edit_test");
+            JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+            coll2.insert(new WikiEdit(data, wikitext.getTitle(), wikitext.getRevid()));
+
             predata=data;
             prev_text=current_text;
         }

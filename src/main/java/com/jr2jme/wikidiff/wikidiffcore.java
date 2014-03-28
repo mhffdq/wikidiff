@@ -21,14 +21,15 @@ import java.util.List;
  */
 public class wikidiffcore {
     public static void main(String[] arg){
+        long start = System.currentTimeMillis();
         Mongo mongo=null;
         try {
-            mongo = new Mongo("192.168.11.6",27017);
+            mongo = new Mongo("dragons",27017);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         assert mongo != null;
-        DB db=mongo.getDB("wikipedia_test");
+        DB db=mongo.getDB("wikipediaDB_kondou");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class,String.class);
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));
@@ -72,6 +73,9 @@ public class wikidiffcore {
             predata=data;
             prev_text=current_text;
         }
+        cursor.close();
+        mongo.close();
+
 
     }
 }

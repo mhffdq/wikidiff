@@ -34,6 +34,7 @@ public class wikidiffcore {
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));
         List<String> prev_text=new ArrayList();
         List<String[]> predata=new ArrayList<String[]>();
+        long start=System.currentTimeMillis();
         for(Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
@@ -72,6 +73,7 @@ public class wikidiffcore {
             predata=data;
             prev_text=current_text;
         }
+        System.out.println(start-System.currentTimeMillis());
 
     }
 }

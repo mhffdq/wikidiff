@@ -48,7 +48,8 @@ public class wikidiffcore {
                 //System.out.println(token.getSurface());
                 current_text.add(token.getSurface());
             }
-            List<String[]> diff = Levenshtein2.diff(prev_text, current_text);
+            Levenshtein3 d = new Levenshtein3();
+            List<String[]> diff = d.diff(prev_text, current_text);
             List<String[]> data=new ArrayList<String[]>();
             int i = 0;
 
@@ -73,7 +74,9 @@ public class wikidiffcore {
             predata=data;
             prev_text=current_text;
         }
-        System.out.println(start-System.currentTimeMillis());
+        cursor.close();
+        mongo.close();
+        System.out.println(System.currentTimeMillis()-start);
 
     }
 }

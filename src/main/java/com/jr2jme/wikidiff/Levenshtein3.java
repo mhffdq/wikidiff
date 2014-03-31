@@ -42,6 +42,18 @@ public class Levenshtein3 {
         offset=n;
         delta=m-n;
         size=n+m+1;
+        if(n==0){
+            List<String[]> list=new ArrayList<String[]>(m);
+            String type="d";
+            if(reverse){
+                type="i";
+            }
+            for(String hoge:A){
+                String[] array = {hoge,type};
+                list.add(array);
+            }
+            return list;
+        }
 // v[k] は k で到達可能な x の位置
         fp = new EditNode2[size];
         for(int i=0;i<size;i++){
@@ -71,21 +83,20 @@ public class Levenshtein3 {
                 if(type.equals("+")){
                     String[] str={B.get(b_index),"d"};
                     list.add(str);
-                    System.out.println("]削除["+B.get(b_index));
                     //currenttype=0;
                     b_index--;
                 }
                 else if(type.equals("-")){
                     String[] str={A.get(a_index),"i"};
                     list.add(str);
-                    System.out.println(A.get(a_index));
+
                     //currenttype=1;
                     a_index--;
                 }
                 else if(type.equals("|")){
                     String[] str={A.get(a_index),"r"};
                     list.add(str);
-                    System.out.println("]残存[" + A.get(a_index));
+
                     //currenttype=2;
                     a_index--;
                     b_index--;
@@ -95,21 +106,21 @@ public class Levenshtein3 {
                 if(type.equals("+")){
                     String[] str={B.get(b_index),"i"};
                     list.add(str);
-                    System.out.println("]追加["+B.get(b_index));
+
                     //currenttype=0;
                     b_index--;
                 }
                 else if(type.equals("-")){
                     String[] str={A.get(a_index),"d"};
                     list.add(str);
-                    System.out.println("]削除[" + A.get(a_index));
+
                     //currenttype=1;
                     a_index--;
                 }
                 else if(type.equals("|")){
                     String[] str={A.get(a_index),"r"};
                     list.add(str);
-                    System.out.println("]残存[" + A.get(a_index));
+
                     //currenttype=2;
                     a_index--;
                     b_index--;
@@ -126,10 +137,11 @@ public class Levenshtein3 {
 
    private void snake(int k){
         if(k<-n||m<k){
-            return;
+
         }
         else{
             EditNode2 current = fp[k+offset];
+
             if(k==-n){
                 EditNode2 down=fp[k+1+offset];
                 if(down.getY()!=null) {
@@ -171,11 +183,9 @@ public class Levenshtein3 {
                     if(slide.getY() > (down.getY()+1)){
                         current.setY(slide.getY());
                         current.addnode(slide.getTree(),"-");
-                        System.out.println("y");
                     } else {
                         current.setY(down.getY()+1);
                         current.addnode(down.getTree(),"+");
-                        System.out.println("x");
 
                     }
                 }

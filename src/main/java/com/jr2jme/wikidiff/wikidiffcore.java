@@ -1,18 +1,5 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.st.Wikitext;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.Mongo;
-import net.java.sen.SenFactory;
-import net.java.sen.StringTagger;
-import net.java.sen.dictionary.Token;
-import org.mongojack.DBCursor;
-import org.mongojack.DBQuery;
-import org.mongojack.JacksonDBCollection;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +8,7 @@ import java.util.List;
  */
 public class wikidiffcore {
     public static void main(String[] arg){
-        Mongo mongo=null;
+        /*Mongo mongo=null;
         try {
             mongo = new Mongo("192.168.11.6",27017);
         } catch (UnknownHostException e) {
@@ -31,11 +18,17 @@ public class wikidiffcore {
         DB db=mongo.getDB("wikipedia_test");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class,String.class);
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title","Bon Appetit!"));*/
         List<String> prev_text=new ArrayList();
-        List<String[]> predata=new ArrayList<String[]>();
+        Levenshtein3 d = new Levenshtein3();
+        List<String> current_text=new ArrayList();
+        prev_text.add("hoge");
+        prev_text.add("hoge");
         long start=System.currentTimeMillis();
-        for(Wikitext wikitext:cursor){
+        List<String[]> diff = d.diff(prev_text, current_text);
+        List<String[]> predata=new ArrayList<String[]>();
+
+        /*for(Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
             try {
@@ -75,8 +68,8 @@ public class wikidiffcore {
             prev_text=current_text;
         }
         cursor.close();
-        mongo.close();
-        System.out.println(System.currentTimeMillis()-start);
+        mongo.close();*/
+        //System.out.println(System.currentTimeMillis()-start);
 
     }
 }

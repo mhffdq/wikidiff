@@ -31,13 +31,15 @@ public class wikidiffcore {
         DB db=mongo.getDB("wikipedia_test");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "Bon Appetit!"));
+        DBCollection dbCollection2=db.getCollection("edit_test2");
+        JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "Bon Appetit!")).limit(100);
         List<String> prev_text=new ArrayList();
 
-        long start=System.currentTimeMillis();
-        List<String[]> predata=new ArrayList<String[]>();
 
-        for(Wikitext wikitext:cursor){
+        List<Term_Editor> predata=new ArrayList<Term_Editor>();
+
+        for(final Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
             try {
@@ -51,34 +53,32 @@ public class wikidiffcore {
                 current_text.add(token.getSurface());
             }
             Levenshtein3 d = new Levenshtein3();
+            long start=System.currentTimeMillis();
             List<String[]> diff = d.diff(prev_text, current_text);
-            List<String[]> data=new ArrayList<String[]>();
+            System.out.println(System.currentTimeMillis()-start);
+            List<Term_Editor> data=new ArrayList<Term_Editor>();
             int i = 0;
-
             for(String[] st:diff){
                 if(st[1].equals("i")){
-                    String[] tes ={st[0],wikitext.getName()};
+                    Term_Editor tes =new Term_Editor(st[0],wikitext.getName());
                     data.add(tes);
                 }
                 else if(st[1].equals("d")){
                     i++;
                 }
                 else if(st[1].equals("r")){
-                    String[] tes = {st[0],predata.get(i)[1]};
+                    Term_Editor tes =new Term_Editor(st[0],predata.get(i).getName());
                     data.add(tes);
                     i++;
                 }
             }
-            DBCollection dbCollection2=db.getCollection("edit_test");
-            JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
             coll2.insert(new WikiEdit(data, wikitext.getTitle(), wikitext.getRevid()));
-
             predata=data;
             prev_text=current_text;
         }
         cursor.close();
         mongo.close();
-        System.out.println(System.currentTimeMillis()-start);
+
 
     }
 }

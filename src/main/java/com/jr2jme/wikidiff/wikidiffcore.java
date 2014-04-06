@@ -14,9 +14,12 @@ import org.mongojack.JacksonDBCollection;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by JR2JME on 2014/03/24.
@@ -38,11 +41,13 @@ public class wikidiffcore {
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "Bon Appetit!")).limit(100);
         List<String> prev_text=new ArrayList();
 
-        long start=System.currentTimeMillis();
+
         List<Term_Editor> predata=new ArrayList<Term_Editor>();
-        ExecutorService exec = Executors.newFixedThreadPool(10);
+        ExecutorService exec = Executors.newFixedThreadPool(3);
+        Levenshtein3 d = new Levenshtein3();
         int version=0;
         for(final Wikitext wikitext:cursor){
+            long start=System.currentTimeMillis();
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
             try {
@@ -55,18 +60,27 @@ public class wikidiffcore {
                 //System.out.println(token.getSurface());
                 current_text.add(token.getSurface());
             }
-            Levenshtein3 d = new Levenshtein3();
+
 
             List<String[]> diff = d.diff(prev_text, current_text);
-            System.out.println(System.currentTimeMillis()-start);
+
             List<Term_Editor> data=new ArrayList<Term_Editor>();
             int i = 0;
+            Map<String,List<String>> deleteterms=new HashMap<String, List<String>>();
+                    new ArrayList<String>();
             for(String[] st:diff){
                 if(st[1].equals("i")){
                     Term_Editor tes =new Term_Editor(st[0],wikitext.getName());
                     data.add(tes);
                 }
                 else if(st[1].equals("d")){
+                    if(deleteterms.containsKey(predata.get(i))) {
+                        deleteterms.get(predata.get(i).getName()).add(predata.get(i).getTerm());
+                    }else{
+                        List<String> terms=new ArrayList<String>();
+                        terms.add(predata.get(i).getTerm());
+                        deleteterms.put(predata.get(i).getName(),terms);
+                    }
                     i++;
                 }
                 else if(st[1].equals("r")){
@@ -75,11 +89,22 @@ public class wikidiffcore {
                     i++;
                 }
             }
-            exec.submit(new Task(coll2,data,wikitext.getTitle(),version));
+
+            System.out.println(System.currentTimeMillis() - start);
+            coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
+
+            //exec.submit(new Task(coll2,data,wikitext.getTitle(),version));
             predata=data;
             prev_text=current_text;
             version++;
         }
+        exec.shutdown();
+        try {
+            exec.awaitTermination(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         cursor.close();
         mongo.close();
 
@@ -101,5 +126,8 @@ class Task implements Runnable {
     @Override
     public void run(){
         coll.insert(new WikiEdit(data, name, version));
+        System.out.println(version);
+    }
+    public void stopThread(){
     }
 }

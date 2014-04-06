@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by JR2JME on 2014/03/24.
@@ -36,9 +38,10 @@ public class wikidiffcore {
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "Bon Appetit!")).limit(100);
         List<String> prev_text=new ArrayList();
 
-
+        long start=System.currentTimeMillis();
         List<Term_Editor> predata=new ArrayList<Term_Editor>();
-
+        ExecutorService exec = Executors.newFixedThreadPool(10);
+        int version=0;
         for(final Wikitext wikitext:cursor){
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
@@ -53,7 +56,7 @@ public class wikidiffcore {
                 current_text.add(token.getSurface());
             }
             Levenshtein3 d = new Levenshtein3();
-            long start=System.currentTimeMillis();
+
             List<String[]> diff = d.diff(prev_text, current_text);
             System.out.println(System.currentTimeMillis()-start);
             List<Term_Editor> data=new ArrayList<Term_Editor>();
@@ -72,13 +75,31 @@ public class wikidiffcore {
                     i++;
                 }
             }
-            coll2.insert(new WikiEdit(data, wikitext.getTitle(), wikitext.getRevid()));
+            exec.submit(new Task(coll2,data,wikitext.getTitle(),version));
             predata=data;
             prev_text=current_text;
+            version++;
         }
         cursor.close();
         mongo.close();
 
 
+    }
+}
+
+class Task implements Runnable {
+    JacksonDBCollection<WikiEdit,String> coll;
+    List<Term_Editor> data;
+    String name;
+    int version;
+    public Task(JacksonDBCollection<WikiEdit,String> coll,List<Term_Editor> data,String name,int version) {
+        this.coll=coll;
+        this.data=data;
+        this.name=name;
+        this.version=version;
+    }
+    @Override
+    public void run(){
+        coll.insert(new WikiEdit(data, name, version));
     }
 }

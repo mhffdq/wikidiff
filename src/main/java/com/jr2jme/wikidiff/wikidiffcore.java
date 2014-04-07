@@ -79,6 +79,7 @@ public class wikidiffcore {
                         Term_Editor tes = new Term_Editor(st[0], wikitext.getName());
                         data.add(tes);
                     } else if (st[1].equals("d")) {
+                        
                         if (deleteterms.containsKey(predata.get(i))) {
                             deleteterms.get(predata.get(i).getName()).add(predata.get(i).getTerm());
                         } else {

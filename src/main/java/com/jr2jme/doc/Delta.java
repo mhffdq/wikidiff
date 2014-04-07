@@ -20,6 +20,22 @@ public class Delta {
         this.version=version;
         this.editor=editor;
     }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public List<String> getDelta() {
+        return delta;
+    }
+
+    public String getEditor() {
+        return editor;
+    }
+
+    public String getTitle() {
+        return title;
+    }
     private String id;
     @ObjectId
     @JsonProperty("_id")

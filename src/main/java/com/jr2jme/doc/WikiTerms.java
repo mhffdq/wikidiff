@@ -20,6 +20,23 @@ public class WikiTerms {
         this.version=version;
         this.editor=editor;
     }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public List<String> getText() {
+        return text;
+    }
+
+    public String getEditor() {
+        return editor;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
     private String id;
     @ObjectId
     @JsonProperty("_id")

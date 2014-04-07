@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
  * Created by JR2JME on 2014/03/24.
  */
 public class wikidiffcore {
+    public static JacksonDBCollection<WikiTerms,String> coll3;
+    public static JacksonDBCollection<Delta,String> coll4;
     public static void main(String[] arg){
         Mongo mongo=null;
         try {
@@ -38,7 +40,11 @@ public class wikidiffcore {
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
         DBCollection dbCollection2=db.getCollection("edit_test2");
+        DBCollection dbCollection3=db.getCollection("terms");
+        DBCollection dbCollection4=db.getCollection("delta");
         JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+        coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
+        coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
         List<String> prev_text=new ArrayList();
         ExecutorService exec = Executors.newFixedThreadPool(10);
@@ -152,10 +158,10 @@ class Task2 implements Runnable {
     }
     @Override
     public void run() {
-        new WikiTerms("亀梨和也",version,current_text,name);
+        wikidiffcore.coll3.insert(new WikiTerms("亀梨和也",version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
 
-        new Delta("亀梨和也",version,diff,name);
+        wikidiffcore.coll4.insert(new Delta("亀梨和也",version,diff,name));
     }
 }

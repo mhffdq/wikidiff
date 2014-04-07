@@ -28,12 +28,12 @@ public class wikidiffcore {
     public static void main(String[] arg){
         Mongo mongo=null;
         try {
-            mongo = new Mongo("192.168.11.6",27017);
+            mongo = new Mongo("dragons.db.ss.is.nagoya-u.ac.jp",27017);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
         assert mongo != null;
-        DB db=mongo.getDB("wikipedia_test");
+        DB db=mongo.getDB("wikipediaDB_kondou");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
         DBCollection dbCollection2=db.getCollection("edit_test2");
@@ -46,8 +46,9 @@ public class wikidiffcore {
         ExecutorService exec = Executors.newFixedThreadPool(3);
         Levenshtein3 d = new Levenshtein3();
         int version=0;
+        long start=System.currentTimeMillis();
         for(final Wikitext wikitext:cursor){
-            long start=System.currentTimeMillis();
+
             StringTagger tagger = SenFactory.getStringTagger(null);
             List<Token> tokens = new ArrayList<Token>();
             try {
@@ -90,7 +91,7 @@ public class wikidiffcore {
                 }
             }
 
-            System.out.println(System.currentTimeMillis() - start);
+
             coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
 
             //exec.submit(new Task(coll2,data,wikitext.getTitle(),version));
@@ -104,7 +105,7 @@ public class wikidiffcore {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        System.out.println(System.currentTimeMillis() - start);
         cursor.close();
         mongo.close();
 

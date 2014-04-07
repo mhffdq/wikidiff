@@ -8,23 +8,25 @@ import java.util.Date;
 /**
  * Created by Hirotaka on 2014/03/23.
  */
-public class Wikitext{
+public class Wikitext {
     String title;
     Date date;
     String name;
     String text;
     String comment;
     int revid;
+    int version;
     public Wikitext(){//forjackson dummy
 
     }
-    public Wikitext(String titlea,Date datea,String namea,String texta,int id,String com){
+    public Wikitext(String titlea, Date datea, String namea, String texta, int id, String com,int ver){
         title=titlea;
         date=datea;
         name=namea;
         text=texta;
         revid=id;
         comment=com;
+        version=ver;
     }
     public void setDate(Date date) {
         this.date = date;
@@ -55,6 +57,14 @@ public class Wikitext{
 
     public String getText() {
         return text;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public int getVersion() {
+        return version;
     }
 
     public void setComment(String comment) {

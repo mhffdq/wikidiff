@@ -47,7 +47,7 @@ public class wikidiffcore {
         int version=0;
 
         int offset=0;
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).sort(DBSort.asc("version"));
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).limit(100).sort(DBSort.asc("version"));
 
         long start = System.currentTimeMillis();
         while(cursor.hasNext()) {
@@ -102,7 +102,7 @@ public class wikidiffcore {
                 version++;
             }
             offset+=100;
-            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).sort(DBSort.asc("version"));
+            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).limit(100).sort(DBSort.asc("version"));
         }
         exec.shutdown();
         try {

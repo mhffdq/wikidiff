@@ -22,7 +22,7 @@ public class Levenshtein3 {
     private List<String> B;
 
 
-    public List<String[]> diff(List<String> a, List<String> b){
+    public List<String> diff(List<String> a, List<String> b){
         m = a.size();
         n = b.size();
         A=a;
@@ -43,14 +43,14 @@ public class Levenshtein3 {
         delta=m-n;
         size=n+m+1;
         if(n==0){
-            List<String[]> list=new ArrayList<String[]>(m);
+            List<String> list=new ArrayList<String>(size);
             String type="d";
             if(reverse){
                 type="i";
             }
             for(String hoge:A){
                 String[] array = {hoge,type};
-                list.add(array);
+                list.add(type);
             }
             return list;
         }
@@ -73,7 +73,7 @@ public class Levenshtein3 {
             snake(delta);
         } while(fp[delta+offset].getY()!=null&&fp[delta+offset].getY()<n);
 
-        List<String[]> list=new ArrayList<String[]>();
+        List<String> list=new ArrayList<String>();
         int a_index=m-1;
         int b_index=n-1;
         EditNode2 current = fp[delta+offset];
@@ -82,20 +82,20 @@ public class Levenshtein3 {
             if(reverse){
                 if(type.equals("+")){
                     String[] str={B.get(b_index),"d"};
-                    list.add(str);
+                    list.add("-");
                     //currenttype=0;
                     b_index--;
                 }
                 else if(type.equals("-")){
                     String[] str={A.get(a_index),"i"};
-                    list.add(str);
+                    list.add("+");
 
                     //currenttype=1;
                     a_index--;
                 }
                 else if(type.equals("|")){
                     String[] str={A.get(a_index),"r"};
-                    list.add(str);
+                    list.add("|");
 
                     //currenttype=2;
                     a_index--;
@@ -103,31 +103,10 @@ public class Levenshtein3 {
                 }
             }
             else{
-                if(type.equals("+")){
-                    String[] str={B.get(b_index),"i"};
-                    list.add(str);
-
-                    //currenttype=0;
-                    b_index--;
-                }
-                else if(type.equals("-")){
-                    String[] str={A.get(a_index),"d"};
-                    list.add(str);
-
-                    //currenttype=1;
-                    a_index--;
-                }
-                else if(type.equals("|")){
-                    String[] str={A.get(a_index),"r"};
-                    list.add(str);
-
-                    //currenttype=2;
-                    a_index--;
-                    b_index--;
-                }
+                list.add(type);
             }
         }
-        List<String[]> list2=new ArrayList<String[]>();
+        List<String> list2=new ArrayList<String>();
         for(int i=list.size()-1;i>=0;i--){
             list2.add(list.get(i));
         }

@@ -7,7 +7,7 @@ import java.util.List;
  * Created by Hirotaka on 2014/03/26.
  */
 public class Levenshtein2 {
-    static public List<String[]> diff(List<String> a,List<String> b){
+    static public List<String> diff(List<String> a,List<String> b){
         int m = a.size();
         int n = b.size();
         int max= n+m;
@@ -79,38 +79,16 @@ public class Levenshtein2 {
                 break;
             }
         }
-        List<String[]> list=new ArrayList<String[]>();
+        List<String> list=new ArrayList<String>();
         int a_index=m-1;
         int b_index=n-1;
-        int currenttype=-1;
 
         for(EditTree i=current.getTree();i!=null;i=i.getPrevnode()){
             //System.out.println(current.getPrevnode());
-            String type=i.getType();
-            if(type.equals("+")){
-                String[] str={b.get(b_index),"i"};
-                list.add(str);
-                //System.out.println("]追加["+b.get(b_index));
-                currenttype=0;
-                b_index--;
-            }
-            else if(type.equals("-")){
-                String[] str={a.get(a_index),"d"};
-                list.add(str);
-                //System.out.println("]削除[" + a.get(a_index));
-                currenttype=1;
-                a_index--;
-            }
-            else if(type.equals("|")){
-                String[] str={a.get(a_index),"r"};
-                list.add(str);
-                //System.out.println("]残存[" + a.get(a_index));
-                currenttype=2;
-                a_index--;
-                b_index--;
-            }
+            list.add(i.getType());
+
         }
-        List<String[]> list2=new ArrayList<String[]>();
+        List<String> list2=new ArrayList<String>();
         for(int i=list.size()-1;i>=0;i--){
             list2.add(list.get(i));
         }

@@ -1,5 +1,7 @@
 package com.jr2jme.wikidiff;
 
+import com.jr2jme.doc.Delta;
+import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -15,9 +17,7 @@ import org.mongojack.JacksonDBCollection;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -41,11 +41,7 @@ public class wikidiffcore {
         JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
 
         List<String> prev_text=new ArrayList();
-        List<Term_Editor> predata=new ArrayList<Term_Editor>();
         ExecutorService exec = Executors.newFixedThreadPool(10);
-        Levenshtein3 d = new Levenshtein3();
-        int version=0;
-
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
 
@@ -67,40 +63,16 @@ public class wikidiffcore {
                     //System.out.println(token.getSurface());
                     current_text.add(token.getSurface());
                 }
+                exec.submit(new Task2(current_text,prev_text,"亀梨和也",wikitext.getVersion(),wikitext.getName()));
 
 
-                List<String[]> diff = d.diff(prev_text, current_text);
-                List<Term_Editor> data = new ArrayList<Term_Editor>();
-                int i = 0;
-                Map<String, List<String>> deleteterms = new HashMap<String, List<String>>();
-                new ArrayList<String>();
-                for (String[] st : diff) {
-                    if (st[1].equals("i")) {
-                        Term_Editor tes = new Term_Editor(st[0], wikitext.getName());
-                        data.add(tes);
-                    } else if (st[1].equals("d")) {
-                        
-                        if (deleteterms.containsKey(predata.get(i))) {
-                            deleteterms.get(predata.get(i).getName()).add(predata.get(i).getTerm());
-                        } else {
-                            List<String> terms = new ArrayList<String>();
-                            terms.add(predata.get(i).getTerm());
-                            deleteterms.put(predata.get(i).getName(), terms);
-                        }
-                        i++;
-                    } else if (st[1].equals("r")) {
-                        Term_Editor tes = new Term_Editor(st[0], predata.get(i).getName());
-                        data.add(tes);
-                        i++;
-                    }
 
-                }
+                prev_text=current_text;
+
+
                 //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
                 //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
-                exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
-                predata = data;
-                prev_text = current_text;
-                version++;
+                //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
             }
             offset+=100;
             cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
@@ -119,6 +91,31 @@ public class wikidiffcore {
 
 
     }
+
+    /*public void makehoge(List<String[]> diff){
+        for (String[] st : diff) {
+            if (st[1].equals("i")) {
+                Term_Editor tes = new Term_Editor(st[0], wikitext.getName());
+                data.add(tes);
+            } else if (st[1].equals("d")) {
+
+                if (deleteterms.containsKey(predata.get(i))) {
+                    deleteterms.get(predata.get(i).getName()).add(predata.get(i).getTerm());
+                } else {
+                    List<String> terms = new ArrayList<String>();
+                    terms.add(predata.get(i).getTerm());
+                    deleteterms.put(predata.get(i).getName(), terms);
+                }
+                i++;
+            } else if (st[1].equals("r")) {
+                Term_Editor tes = new Term_Editor(st[0], predata.get(i).getName());
+                data.add(tes);
+                i++;
+            }
+
+        }
+
+    }*/
 }
 
 class Task implements Runnable {
@@ -138,6 +135,27 @@ class Task implements Runnable {
         coll.insert(new WikiEdit(data, name, version));
         //System.out.println(System.currentTimeMillis() - start);
     }
-    public void stopThread(){
+}
+
+class Task2 implements Runnable {
+    List<String> current_text;
+    List<String> prev_text;
+    String title;
+    int version;
+    String name;
+    public Task2(List<String> current_text,List<String> prev_text,String title,int version,String name){
+        this.current_text=current_text;
+        this.prev_text=prev_text;
+        this.title=title;
+        this.version=version;
+        this.name=name;
+    }
+    @Override
+    public void run() {
+        new WikiTerms("亀梨和也",version,current_text,name);
+        Levenshtein3 d = new Levenshtein3();
+        List<String> diff = d.diff(prev_text, current_text);
+
+        new Delta("亀梨和也",version,diff,name);
     }
 }

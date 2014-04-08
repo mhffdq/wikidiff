@@ -71,9 +71,6 @@ public class wikidiffcore {
             List<String> prev_text=new ArrayList();
             int i=0;
             List<Task2> tasks2 = new ArrayList<Task2>();
-
-
-
             for(Future<List<String>> future:futurelist){
                 try {
                     tasks2.add(new Task2(future.get(), prev_text, "亀梨和也", version, namelist.get(i)));
@@ -88,13 +85,11 @@ public class wikidiffcore {
             }
             List<Future<List<String>>> futurelist2 = null;
             try {
-                exec.invokeAll(tasks2);
+                futurelist2=exec.invokeAll(tasks2);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            for(Future<List<String>> future:futurelist){
-                
-            }
+
             offset+=100;
             cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         }
@@ -139,6 +134,10 @@ public class wikidiffcore {
         }
 
     }*/
+
+    private void whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta){
+
+    }
 }
 
 class Task implements Runnable {

@@ -89,7 +89,22 @@ public class wikidiffcore {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            for(int ver=0;ver<futurelist2.size();ver++){
+                String current_editor=namelist.get(ver);
+                WikiEdit prevdata = null;
 
+                try {
+                    List<String> delta = futurelist2.get(ver).get();
+                    List<String> text = futurelist.get(ver).get();
+                    whowrite(current_editor,prevdata,text,delta,ver);
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+                ver++;
+            }
             offset+=100;
             cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         }
@@ -135,7 +150,25 @@ public class wikidiffcore {
 
     }*/
 
-    private void whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta){
+    private static void whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta,int ver){
+        int a = 0;
+        int b = 0;
+        List<Term_Editor> term_editors = new ArrayList<Term_Editor>();
+        for(int x=0;x<delta.size();x++){
+            if(delta.get(x).equals("+")){
+                term_editors.add(new Term_Editor(text.get(a),currenteditor));
+                a++;
+            }
+            else if(delta.get(x).equals("-")){
+                b++;
+            }
+            else if(delta.get(x).equals("|")){
+                term_editors.add(new Term_Editor(text.get(a),prevdata.getText_editor().get(a).getName()));
+                a++;
+                b++;
+            }
+        }
+        new WikiEdit(term_editors,"亀梨和也",ver);
 
     }
 }

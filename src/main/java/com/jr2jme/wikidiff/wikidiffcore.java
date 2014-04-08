@@ -37,7 +37,7 @@ public class wikidiffcore {
         DB db=mongo.getDB("wikipediaDB_kondou");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        DBCollection dbCollection2=db.getCollection("edit_test2");
+        //DBCollection dbCollection2=db.getCollection("edit_test2");
         DBCollection dbCollection3=db.getCollection("terms");
         DBCollection dbCollection4=db.getCollection("delta");
         //JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
@@ -70,9 +70,13 @@ public class wikidiffcore {
             System.out.println(System.currentTimeMillis() - start);
             List<String> prev_text=new ArrayList();
             int i=0;
+            List<Task2> tasks2 = new ArrayList<Task2>();
+
+
+
             for(Future<List<String>> future:futurelist){
                 try {
-                    exec.submit(new Task2(future.get(),prev_text,"亀梨和也",version,namelist.get(i)));
+                    tasks2.add(new Task2(future.get(), prev_text, "亀梨和也", version, namelist.get(i)));
                     i++;
                     version++;
                     prev_text=future.get();
@@ -82,11 +86,18 @@ public class wikidiffcore {
                     e.printStackTrace();
                 }
             }
+            List<Future<List<String>>> futurelist2 = null;
+            try {
+                exec.invokeAll(tasks2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            for(Future<List<String>> future:futurelist){
+                
+            }
             offset+=100;
             cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         }
-
-
                 //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
                 //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
                 //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
@@ -149,7 +160,7 @@ class Task implements Runnable {
     }
 }
 
-class Task2 implements Runnable {
+class Task2 implements Callable<List<String>> {
     List<String> current_text;
     List<String> prev_text;
     String title;
@@ -163,12 +174,12 @@ class Task2 implements Runnable {
         this.name=name;
     }
     @Override
-    public void run() {
+    public List<String> call() {
         wikidiffcore.coll3.insert(new WikiTerms("亀梨和也",version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
-
         wikidiffcore.coll4.insert(new Delta("亀梨和也",version,diff,name));
+        return diff;
     }
 }
 

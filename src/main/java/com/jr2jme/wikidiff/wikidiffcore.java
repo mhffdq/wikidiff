@@ -1,6 +1,7 @@
 package com.jr2jme.wikidiff;
 
 import com.jr2jme.doc.Delta;
+import com.jr2jme.doc.WhoWrite;
 import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
@@ -40,7 +41,7 @@ public class wikidiffcore {
         DBCollection dbCollection2=db.getCollection("edit_test2");
         DBCollection dbCollection3=db.getCollection("terms");
         DBCollection dbCollection4=db.getCollection("delta");
-        JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+        JacksonDBCollection<WhoWrite,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
@@ -49,7 +50,7 @@ public class wikidiffcore {
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         int version=1;
-        WikiEdit prevdata = null;
+        WhoWrite prevdata = null;
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList();
         while(cursor.hasNext()) {
@@ -95,7 +96,7 @@ public class wikidiffcore {
                     List<String> delta = futurelist2.get(ver).get();
                     List<String> text = futurelist.get(ver).get();
 
-                    WikiEdit now=whowrite(current_editor,prevdata,text,delta,ver);
+                    WhoWrite now=whowrite(current_editor,prevdata,text,delta,ver);
                     coll2.insert(now);
                     prevdata=now;
 
@@ -152,15 +153,15 @@ public class wikidiffcore {
 
     }*/
 
-    private static WikiEdit whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta,int ver){
+    private static WhoWrite whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> delta,int ver){
         int a = 0;
         int b = 0;
-        List<Term_Editor> term_editors = new ArrayList<Term_Editor>();
+        List<String> editors = new ArrayList<String>();
         for(int x=0;x<delta.size();x++){
             //System.out.println(delta.get(x));
             if(delta.get(x).equals("+")){
                 //System.out.println(text.get(a));
-                term_editors.add(new Term_Editor(text.get(a),currenteditor));
+                editors.add(currenteditor);
                 a++;
             }
             else if(delta.get(x).equals("-")){
@@ -170,12 +171,12 @@ public class wikidiffcore {
             }
             else if(delta.get(x).equals("|")){
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
-                term_editors.add(new Term_Editor(prevdata.getText_editor().get(b).getTerm(),prevdata.getText_editor().get(b).getName()));
+                editors.add(prevdata.getEditors().get(b));
                 a++;
                 b++;
             }
         }
-        return new WikiEdit(term_editors,"亀梨和也",ver);
+        return new WhoWrite(editors,"亀梨和也",ver);
 
     }
 }

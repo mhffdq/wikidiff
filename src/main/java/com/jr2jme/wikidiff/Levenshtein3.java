@@ -44,9 +44,9 @@ public class Levenshtein3 {
         size=n+m+1;
         if(n==0){
             List<String> list=new ArrayList<String>(size);
-            String type="d";
+            String type="-";
             if(reverse){
-                type="i";
+                type="+";
             }
             for(String hoge:A){
                 String[] array = {hoge,type};

@@ -37,10 +37,10 @@ public class wikidiffcore {
         DB db=mongo.getDB("wikipediaDB_kondou");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        //DBCollection dbCollection2=db.getCollection("edit_test2");
+        DBCollection dbCollection2=db.getCollection("edit_test2");
         DBCollection dbCollection3=db.getCollection("terms");
         DBCollection dbCollection4=db.getCollection("delta");
-        //JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+        JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
@@ -49,7 +49,9 @@ public class wikidiffcore {
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         int version=1;
-
+        WikiEdit prevdata = null;
+        long start=System.currentTimeMillis();
+        List<String> prev_text=new ArrayList();
         while(cursor.hasNext()) {
             List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
@@ -61,14 +63,12 @@ public class wikidiffcore {
             }
 
             List<Future<List<String>>> futurelist = null;
-            long start=System.currentTimeMillis();
+
             try {
                 futurelist=exec.invokeAll(tasks);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println(System.currentTimeMillis() - start);
-            List<String> prev_text=new ArrayList();
             int i=0;
             List<Task2> tasks2 = new ArrayList<Task2>();
             for(Future<List<String>> future:futurelist){
@@ -91,19 +91,20 @@ public class wikidiffcore {
             }
             for(int ver=0;ver<futurelist2.size();ver++){
                 String current_editor=namelist.get(ver);
-                WikiEdit prevdata = null;
-
                 try {
                     List<String> delta = futurelist2.get(ver).get();
                     List<String> text = futurelist.get(ver).get();
-                    whowrite(current_editor,prevdata,text,delta,ver);
+
+                    WikiEdit now=whowrite(current_editor,prevdata,text,delta,ver);
+                    coll2.insert(now);
+                    prevdata=now;
+
 
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-                ver++;
             }
             offset+=100;
             cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
@@ -118,6 +119,7 @@ public class wikidiffcore {
             e.printStackTrace();
         }
 
+        System.out.println(System.currentTimeMillis() - start);
         //coll2.insert(wikieditlist);
         cursor.close();
         mongo.close();
@@ -150,25 +152,30 @@ public class wikidiffcore {
 
     }*/
 
-    private static void whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta,int ver){
+    private static WikiEdit whowrite(String currenteditor,WikiEdit prevdata,List<String> text,List<String> delta,int ver){
         int a = 0;
         int b = 0;
         List<Term_Editor> term_editors = new ArrayList<Term_Editor>();
         for(int x=0;x<delta.size();x++){
+            //System.out.println(delta.get(x));
             if(delta.get(x).equals("+")){
+                //System.out.println(text.get(a));
                 term_editors.add(new Term_Editor(text.get(a),currenteditor));
                 a++;
             }
             else if(delta.get(x).equals("-")){
+
+                //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             }
             else if(delta.get(x).equals("|")){
-                term_editors.add(new Term_Editor(text.get(a),prevdata.getText_editor().get(a).getName()));
+                //System.out.println(prevdata.getText_editor().get(b).getTerm());
+                term_editors.add(new Term_Editor(prevdata.getText_editor().get(b).getTerm(),prevdata.getText_editor().get(b).getName()));
                 a++;
                 b++;
             }
         }
-        new WikiEdit(term_editors,"亀梨和也",ver);
+        return new WikiEdit(term_editors,"亀梨和也",ver);
 
     }
 }

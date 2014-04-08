@@ -5,7 +5,7 @@ import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import net.java.sen.SenFactory;
 import net.java.sen.StringTagger;
 import net.java.sen.dictionary.Token;
@@ -18,9 +18,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by JR2JME on 2014/03/24.
@@ -29,9 +27,9 @@ public class wikidiffcore {
     public static JacksonDBCollection<WikiTerms,String> coll3;
     public static JacksonDBCollection<Delta,String> coll4;
     public static void main(String[] arg){
-        Mongo mongo=null;
+        MongoClient mongo=null;
         try {
-            mongo = new Mongo("dragons.db.ss.is.nagoya-u.ac.jp",27017);
+            mongo = new MongoClient("dragons.db.ss.is.nagoya-u.ac.jp",27017);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
@@ -42,56 +40,62 @@ public class wikidiffcore {
         DBCollection dbCollection2=db.getCollection("edit_test2");
         DBCollection dbCollection3=db.getCollection("terms");
         DBCollection dbCollection4=db.getCollection("delta");
-        JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
+        //JacksonDBCollection<WikiEdit,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WikiEdit.class,String.class);
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
-        List<String> prev_text=new ArrayList();
+
         ExecutorService exec = Executors.newFixedThreadPool(10);
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
-
-        long start = System.currentTimeMillis();
+        int version=1;
+        long start=System.currentTimeMillis();
         while(cursor.hasNext()) {
+            List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
+            List<Kaiseki> tasks = new ArrayList<Kaiseki>();
+            List<String> namelist=new ArrayList<String>();
             for (Wikitext wikitext : cursor) {
+                tasks.add(new Kaiseki(wikitext));
+                namelist.add(wikitext.getName());
+            }
 
-                //System.out.println(version);
-                StringTagger tagger = SenFactory.getStringTagger(null);
-                List<Token> tokens = new ArrayList<Token>();
+            List<Future<List<String>>> futurelist = null;
+            try {
+                futurelist=exec.invokeAll(tasks);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            List<String> prev_text=new ArrayList();
+            int i=0;
+            for(Future<List<String>> future:futurelist){
                 try {
-                    tagger.analyze(wikitext.getText(), tokens);
-                } catch (IOException e) {
+                    exec.submit(new Task2(future.get(),prev_text,"亀梨和也",version,namelist.get(i)));
+                    i++;
+                    version++;
+                    prev_text=future.get();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-                List<String> current_text = new ArrayList<String>();
-                for (Token token : tokens) {
-                    //System.out.println(token.getSurface());
-                    current_text.add(token.getSurface());
-                }
-                exec.submit(new Task2(current_text,prev_text,"亀梨和也",wikitext.getVersion(),wikitext.getName()));
-
-
-
-                prev_text=current_text;
+            }
+            offset+=100;
+            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
+        }
 
 
                 //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
                 //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
                 //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
-            }
-            offset+=100;
-            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
-        }
         exec.shutdown();
         try {
             exec.awaitTermination(2, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        //coll2.insert(wikieditlist);
         System.out.println(System.currentTimeMillis() - start);
+        //coll2.insert(wikieditlist);
         cursor.close();
         mongo.close();
 
@@ -164,4 +168,31 @@ class Task2 implements Runnable {
 
         wikidiffcore.coll4.insert(new Delta("亀梨和也",version,diff,name));
     }
+}
+
+class Kaiseki implements Callable {
+    Wikitext wikitext;
+    public Kaiseki(Wikitext wikitext){
+        this.wikitext=wikitext;
+    }
+    @Override
+    public List<String> call() {
+
+        StringTagger tagger = SenFactory.getStringTagger(null);
+        List<Token> tokens = new ArrayList<Token>();
+        try {
+            tagger.analyze(wikitext.getText(), tokens);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        List<String> current_text = new ArrayList<String>();
+        for (Token token : tokens) {
+            //System.out.println(token.getSurface());
+            current_text.add(token.getSurface());
+        }
+        return current_text;
+    }
+
+
 }

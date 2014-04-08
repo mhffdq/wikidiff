@@ -49,7 +49,7 @@ public class wikidiffcore {
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         int version=1;
-        long start=System.currentTimeMillis();
+
         while(cursor.hasNext()) {
             List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
@@ -61,11 +61,13 @@ public class wikidiffcore {
             }
 
             List<Future<List<String>>> futurelist = null;
+            long start=System.currentTimeMillis();
             try {
                 futurelist=exec.invokeAll(tasks);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            System.out.println(System.currentTimeMillis() - start);
             List<String> prev_text=new ArrayList();
             int i=0;
             for(Future<List<String>> future:futurelist){
@@ -94,7 +96,7 @@ public class wikidiffcore {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println(System.currentTimeMillis() - start);
+
         //coll2.insert(wikieditlist);
         cursor.close();
         mongo.close();
@@ -170,7 +172,7 @@ class Task2 implements Runnable {
     }
 }
 
-class Kaiseki implements Callable {
+class Kaiseki implements Callable<List<String>> {
     Wikitext wikitext;
     public Kaiseki(Wikitext wikitext){
         this.wikitext=wikitext;

@@ -1,0 +1,23 @@
+<component name="ArtifactManager">
+  <artifact name="wikidiff:jarlink">
+    <output-path>$PROJECT_DIR$/out/artifacts/wikidiff_jarlink</output-path>
+    <root id="root">
+      <element id="archive" name="wikidiff.jar">
+        <element id="directory" name="META-INF">
+          <element id="file-copy" path="$PROJECT_DIR$/src/main/java/resource/META-INF/MANIFEST.MF" />
+        </element>
+        <element id="module-output" name="wikidiff" />
+      </element>
+      <element id="library" level="project" name="Maven: org.mongojack:mongojack:2.0.0" />
+      <element id="library" level="project" name="Maven: commons-io:commons-io:2.4" />
+      <element id="library" level="project" name="Maven: org.mongodb:mongo-java-driver:2.11.3" />
+      <element id="library" level="project" name="Maven: javax.persistence:persistence-api:1.0.2" />
+      <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.2.3" />
+      <element id="library" level="project" name="Maven: de.undercouch:bson4jackson:2.2.0" />
+      <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.2.3" />
+      <element id="library" level="project" name="lucene-gosen-4.7.0-naist-chasen" />
+      <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-core:2.2.3" />
+      <element id="library" level="project" name="Maven: com.googlecode.java-diff-utils:diffutils:1.2.1" />
+    </root>
+  </artifact>
+</component>

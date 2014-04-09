@@ -26,7 +26,7 @@ public class DeletedTerms {
         for(Map.Entry<String,Delete> delete:this.terms.entrySet()){
             for(String word:delete.getValue().getWords().keySet()){
                 if(wordcount.containsKey(word)){
-                    wordcount.put(word,delete.getValue().getWords().get(word));
+                    wordcount.put(word, delete.getValue().getWords().get(word));
                 }
                 else{
                     wordcount.put(word,delete.getValue().getWords().get(word)+wordcount.get(word));
@@ -36,8 +36,11 @@ public class DeletedTerms {
     }
 
     public void add(String term,String editor){
-        terms.containsKey(editor){
-            terms.get(editor).add(term);
+        if(terms.containsKey(editor)){
+            terms.get(editor).addTerm(term);
+        }
+        else{
+            terms.put(editor,new Delete())
         }
     }
 
@@ -68,6 +71,7 @@ public class DeletedTerms {
 class Delete{
     String deletededitor;
     Map<String,Integer> words;
+    public Delete(String )
     public Delete(String deletededitor,Map<String,Integer> words){
         this.deletededitor=deletededitor;
         this.words=words;

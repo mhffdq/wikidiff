@@ -159,6 +159,7 @@ public class wikidiffcore {
         int b = 0;
         List<String> editors = new ArrayList<String>();
         InsertedTerms insertedterms = new InsertedTerms("亀梨和也",currenteditor,ver);
+        DeletedTerms deletedterms=new DeletedTer
         for(int x=0;x<delta.size();x++){
             //System.out.println(delta.get(x));
             if(delta.get(x).equals("+")){
@@ -168,9 +169,7 @@ public class wikidiffcore {
                 a++;
             }
             else if(delta.get(x).equals("-")){
-                if(deleted.containsKey(prevdata.getEditors().get(b))){
-                    deleted.containsKey()
-                }
+                deletedterms.add(prevtext.get(b),prevdata.getEditors().get(b));
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             }
@@ -182,7 +181,6 @@ public class wikidiffcore {
             }
         }
 
-        new InsertedTerms("亀梨和也",currenteditor,inserted,ver);
         return new WhoWrite(editors,"亀梨和也",ver);
 
     }

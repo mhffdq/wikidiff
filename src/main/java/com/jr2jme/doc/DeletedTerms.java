@@ -13,13 +13,13 @@ import java.util.Set;
 public class DeletedTerms {
     String title;
     String editor;
-    MAp<Delete> terms;
+    Map<String,Delete> terms;
     int version;
-    Map<String,Integer> wordcount;
+    //Map<String,Integer> wordcount;
     public DeletedTerms(){
 
     }
-    public DeletedTerms(String title,String editor,Set<Delete> terms,int version){
+    public DeletedTerms(String title,String editor,Map<String,Delete> terms,int version){
         this.title=title;
         this.editor=editor;
         this.terms=terms;
@@ -38,6 +38,10 @@ public class DeletedTerms {
         }
     }
 
+    public void add(String term,String editor){
+
+    }
+
     public String getTitle() {
         return title;
     }
@@ -46,7 +50,7 @@ public class DeletedTerms {
         return editor;
     }
 
-    public Set<Delete> getTerms() {
+    public Map<String,Delete> getTerms() {
         return terms;
     }
 
@@ -70,5 +74,4 @@ public class DeletedTerms {
         return wordcount.equals(a);
     }
 }
-
 

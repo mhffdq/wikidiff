@@ -1,81 +1,99 @@
 package com.jr2jme.wikidiff;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.mongojack.ObjectId;
+import com.jr2jme.doc.Delete;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Created by JR2JME on 2014/04/06.
+ * Created by Hirotaka on 2014/04/09.
  */
 public class DeletedTerms {
     String title;
-    String deleteeditor;
-    String deletedsditor;
+    String editor;
+    Map<String,Delete> terms;
     int version;
-    List<String> terms;
-
+    Map<String,Integer> wordcount;
     public DeletedTerms(){
 
     }
-
-    public DeletedTerms(String title,String deleteeditor,String deletedsditor,int version,List<String> terms){
+    public DeletedTerms(String title,String editor,Map<String,Delete> terms,int version){
         this.title=title;
-        this.deleteeditor=deleteeditor;
-        this.deletedsditor=deletedsditor;
-        this.version=version;
+        this.editor=editor;
         this.terms=terms;
+        this.version=version;
+        wordcount=new HashMap<String, Integer>();
+        for(Map.Entry<String,Delete> delete:this.terms.entrySet()){
+            for(String word:delete.getValue().getWords().keySet()){
+                if(wordcount.containsKey(word)){
+                    wordcount.put(word,delete.getValue().getWords().get(word));
+                }
+                else{
+                    wordcount.put(word,delete.getValue().getWords().get(word)+wordcount.get(word));
+                }
+            }
+        }
+    }
+
+    public void add(String term,String editor){
+        terms.containsKey(editor){
+            terms.get(editor).add(term);
+        }
+    }
+
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getEditor() {
+        return editor;
+    }
+
+    public Map<String,Delete> getTerms() {
+        return terms;
     }
 
     public int getVersion() {
         return version;
     }
 
-    public List<String> getTerms() {
-        return terms;
-    }
 
-    public String getDeletedsditor() {
-        return deletedsditor;
-    }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDeleteeditor() {
-        return deleteeditor;
-    }
-
-    public void setDeletedsditor(String deletedsditor) {
-        this.deletedsditor = deletedsditor;
-    }
-
-    public void setDeleteeditor(String deleteeditor) {
-        this.deleteeditor = deleteeditor;
-    }
-
-    public void setTerms(List<String> terms) {
-        this.terms = terms;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setVersion(int version) {
-        this.version = version;
-    }
-
-    private String id;
-    @ObjectId
-    @JsonProperty("_id")
-    public String getId() {
-        return id;
-    }
-    @ObjectId
-    @JsonProperty("_id")
-    public void setId(String id) {
-        this.id = id;
+    public boolean equalswords(Map<String,Integer> a){
+        return wordcount.equals(a);
     }
 }
+
+class Delete{
+    String deletededitor;
+    Map<String,Integer> words;
+    public Delete(String deletededitor,Map<String,Integer> words){
+        this.deletededitor=deletededitor;
+        this.words=words;
+    }
+
+    public Map<String, Integer> getWords() {
+        return words;
+    }
+
+    public String getDeletededitor() {
+        return deletededitor;
+    }
+    public void addTerm(String term){
+        if(words.containsKey(term)){
+            words.put(term,words.get(term)+1);
+        }
+        else{
+            words.put(term,1);
+        }
+    }
+    @Override
+    public boolean equals(Object o){
+        return deletededitor.equals(o);
+    }
+    @Override
+    public int hashCode(){
+        return deletededitor.hashCode();
+    }
+

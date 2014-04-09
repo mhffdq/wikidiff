@@ -11,21 +11,21 @@ import java.util.List;
 public class WhoWrite {
     List<String> editors;
     String title;
-    int revid;
+    int version;
     public WhoWrite(){
     }
     public WhoWrite(List<String> editors,String title,int id){
         this.editors=editors;
         this.title=title;
-        revid=id;
+        version=id;
     }
 
     public void setRevid(int revid) {
-        this.revid = revid;
+        this.version = revid;
     }
 
     public int getRevid() {
-        return revid;
+        return version;
     }
 
     public void setTitle(String title) {

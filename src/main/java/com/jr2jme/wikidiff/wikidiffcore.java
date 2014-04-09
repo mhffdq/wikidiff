@@ -1,8 +1,6 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.doc.Delta;
-import com.jr2jme.doc.WhoWrite;
-import com.jr2jme.doc.WikiTerms;
+import com.jr2jme.doc.*;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -17,8 +15,7 @@ import org.mongojack.JacksonDBCollection;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -52,13 +49,14 @@ public class wikidiffcore {
         int version=1;
         WhoWrite prevdata = null;
         long start=System.currentTimeMillis();
-        List<String> prev_text=new ArrayList();
+        List<String> prev_text=new ArrayList<String>();
+        List<String> prevtext = new ArrayList<String>();
         while(cursor.hasNext()) {
-            List<List<String>> editlist=new ArrayList<List<String>>();
+            //List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
             List<Kaiseki> tasks = new ArrayList<Kaiseki>();
             List<String> namelist=new ArrayList<String>();
-            for (Wikitext wikitext : cursor) {
+            for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
                 tasks.add(new Kaiseki(wikitext));
                 namelist.add(wikitext.getName());
             }
@@ -72,7 +70,8 @@ public class wikidiffcore {
             }
             int i=0;
             List<Task2> tasks2 = new ArrayList<Task2>();
-            for(Future<List<String>> future:futurelist){
+            assert futurelist != null;
+            for(Future<List<String>> future:futurelist){//差分をとる
                 try {
                     tasks2.add(new Task2(future.get(), prev_text, "亀梨和也", version, namelist.get(i)));
                     i++;
@@ -90,15 +89,17 @@ public class wikidiffcore {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            for(int ver=0;ver<futurelist2.size();ver++){
+            assert futurelist2 != null;
+            for(int ver=0;ver<futurelist2.size();ver++){//誰がどこを書いたかとか
                 String current_editor=namelist.get(ver);
                 try {
                     List<String> delta = futurelist2.get(ver).get();
                     List<String> text = futurelist.get(ver).get();
 
-                    WhoWrite now=whowrite(current_editor,prevdata,text,delta,ver);
+                    WhoWrite now=whowrite(current_editor,prevdata,text,prevtext,delta,ver);
                     coll2.insert(now);
                     prevdata=now;
+                    prevtext=text;
 
 
                 } catch (InterruptedException e) {
@@ -153,19 +154,23 @@ public class wikidiffcore {
 
     }*/
 
-    private static WhoWrite whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> delta,int ver){
+    private static WhoWrite whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;
         int b = 0;
         List<String> editors = new ArrayList<String>();
+        InsertedTerms insertedterms = new InsertedTerms("亀梨和也",currenteditor,ver);
         for(int x=0;x<delta.size();x++){
             //System.out.println(delta.get(x));
             if(delta.get(x).equals("+")){
                 //System.out.println(text.get(a));
                 editors.add(currenteditor);
+                insertedterms.add(text.get(a));
                 a++;
             }
             else if(delta.get(x).equals("-")){
-
+                if(deleted.containsKey(prevdata.getEditors().get(b))){
+                    deleted.containsKey()
+                }
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             }
@@ -176,12 +181,14 @@ public class wikidiffcore {
                 b++;
             }
         }
+
+        new InsertedTerms("亀梨和也",currenteditor,inserted,ver);
         return new WhoWrite(editors,"亀梨和也",ver);
 
     }
 }
 
-class Task implements Runnable {
+/*class Task implements Runnable {//
     JacksonDBCollection<WikiEdit,String> coll;
     List<Term_Editor> data;
     String name;
@@ -198,9 +205,9 @@ class Task implements Runnable {
         coll.insert(new WikiEdit(data, name, version));
         //System.out.println(System.currentTimeMillis() - start);
     }
-}
+}*/
 
-class Task2 implements Callable<List<String>> {
+class Task2 implements Callable<List<String>> {//差分
     List<String> current_text;
     List<String> prev_text;
     String title;
@@ -223,7 +230,7 @@ class Task2 implements Callable<List<String>> {
     }
 }
 
-class Kaiseki implements Callable<List<String>> {
+class Kaiseki implements Callable<List<String>> {//形態素解析
     Wikitext wikitext;
     public Kaiseki(Wikitext wikitext){
         this.wikitext=wikitext;

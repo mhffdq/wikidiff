@@ -11,21 +11,21 @@ import java.util.List;
 public class WikiEdit {
     List<Term_Editor> text_editor;
     String title;
-    int revid;
+    int version;
     public WikiEdit(){
     }
     public WikiEdit(List<Term_Editor> l,String title,int id){
         text_editor=l;
         this.title=title;
-        revid=id;
+        version=id;
     }
 
-    public void setRevid(int revid) {
-        this.revid = revid;
+    public void setVersion(int version) {
+        this.version = version;
     }
 
-    public int getRevid() {
-        return revid;
+    public int getVersion() {
+        return version;
     }
 
     public void setTitle(String title) {

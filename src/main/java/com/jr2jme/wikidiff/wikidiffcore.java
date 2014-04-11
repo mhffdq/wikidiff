@@ -51,7 +51,7 @@ public class wikidiffcore {
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList<String>();
         List<String> prevtext = new ArrayList<String>();
-        WhoWriteResult resultsarray= null;
+        WhoWriteResult[] resultsarray= new WhoWriteResult[20];
         int tail=0;
         int head=0;
         while(cursor.hasNext()) {
@@ -61,6 +61,9 @@ public class wikidiffcore {
             List<String> namelist=new ArrayList<String>();
             List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
             for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
+                if(wikitext.getVersion()==358){
+                    System.out.println(wikitext.getText());
+                }
                 futurelist.add(exec.submit(new Kaiseki(wikitext)));
                 namelist.add(wikitext.getName());
             }
@@ -92,15 +95,18 @@ public class wikidiffcore {
                     List<String> text = futurelist.get(ver).get();
 
                     WhoWriteResult now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1);
-                    /*for(int ccc=0;ccc<tail%20;ccc++){
-                        now.compare(resultsarray[ccc]);
-                    }*/
-                    if(resultsarray!=null) {
-                        now.compare(resultsarray);
+                    if(tail>=20){
+                        head=20;
                     }
-                    resultsarray=now;
-                    //resultsarray[tail%20]=now;
-                    //tail++;
+                    else{
+                        head=tail;
+                    }
+                    for(int ccc=0;ccc<head;ccc++){
+                        now.compare(resultsarray[ccc]);
+                    }
+
+                    resultsarray[tail%20]=now;
+                    tail++;
 
                     coll2.insert(now.whoWrite);
                     prevdata=now.whoWrite;
@@ -209,7 +215,10 @@ class WhoWriteResult {
     }
     public boolean compare(WhoWriteResult ddd){
         if(this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms())) {
-            System.out.println(whoWrite.getVersion()+"revert");
+            System.out.println(whoWrite.getVersion()+":"+ddd.whoWrite.getVersion()+"revert");
+            /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
+                System.out.println(hoge.getKey());
+            }*/
             return true;
         }else{
             return false;
@@ -278,6 +287,7 @@ class Kaiseki implements Callable<List<String>> {//形態素解析
 
         List<String> current_text = new ArrayList<String>();
         for (Token token : tokens) {
+
             //System.out.println(token.getSurface());
             current_text.add(token.getSurface());
         }

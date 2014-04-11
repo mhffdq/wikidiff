@@ -2,7 +2,9 @@ package com.jr2jme.wikidiff;
 
 import com.jr2jme.doc.DeletedTerms;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +35,18 @@ public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
             delterms.put(delete.getDeletededitor(),tempmap);
         }
 
+    }
+
+    public DeletedTerms makeDeletedTerms(){
+        List<Delete> dellist=new ArrayList<Delete>();
+        for(Map.Entry<String,Map<String,Integer>> entry:delterms.entrySet()){
+            List<TermCount> termlist = new ArrayList<TermCount>();
+            for(Map.Entry<String,Integer> termc:entry.getValue().entrySet()){
+                termlist.add(new TermCount(termc.getKey(),termc.getValue()));
+            }
+            dellist.add(new Delete(entry.getKey(),termlist));
+        }
+        return new DeletedTerms(this.title,this.editor,dellist,this.version);
     }
 
 

@@ -80,7 +80,10 @@ public class DeletedTerms {
     protected class TermCount {
         String term;
         int count;
-
+        public TermCount(String term,int count){
+            this.count=count;
+            this.term=term;
+        }
         public void setCount(int count) {
             this.count = count;
         }

@@ -1,21 +1,23 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.doc.*;
+import com.jr2jme.doc.Delta;
+import com.jr2jme.doc.InsertedTerms;
+import com.jr2jme.doc.WhoWrite;
+import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
-import net.java.sen.SenFactory;
-import net.java.sen.StringTagger;
-import net.java.sen.dictionary.Token;
+import org.atilika.kuromoji.Token;
+import org.atilika.kuromoji.Tokenizer;
 import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBSort;
 import org.mongojack.JacksonDBCollection;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.*;
 
 /**
@@ -61,9 +63,6 @@ public class wikidiffcore {
             List<String> namelist=new ArrayList<String>();
             List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
             for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
-                if(wikitext.getVersion()==358){
-                    System.out.println(wikitext.getText());
-                }
                 futurelist.add(exec.submit(new Kaiseki(wikitext)));
                 namelist.add(wikitext.getName());
             }
@@ -277,19 +276,25 @@ class Kaiseki implements Callable<List<String>> {//形態素解析
     @Override
     public List<String> call() {
 
-        StringTagger tagger = SenFactory.getStringTagger(null);
+        /*StringTagger tagger = SenFactory.getStringTagger(null);
         List<Token> tokens = new ArrayList<Token>();
         try {
             tagger.analyze(wikitext.getText(), tokens);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        */
 
+        Tokenizer tokenizer = Tokenizer.builder().build();
+        List<Token> tokens = tokenizer.tokenize(wikitext.getText());
         List<String> current_text = new ArrayList<String>();
-        for (Token token : tokens) {
 
+        for (Token token : tokens) {
+            if(wikitext.getVersion()==358){
+                System.out.println(token.getSurfaceForm());
+            }
             //System.out.println(token.getSurface());
-            current_text.add(token.getSurface());
+            current_text.add(token.getSurfaceForm());
         }
         return current_text;
     }

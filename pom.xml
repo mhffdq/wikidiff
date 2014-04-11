@@ -7,6 +7,12 @@
     <groupId>com.jr2jme</groupId>
     <artifactId>wikidiff</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <repositories>
+    <repository>
+        <id>Atilika Open Source repository</id>
+        <url>http://www.atilika.org/nexus/content/repositories/atilika</url>
+    </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>org.mongojack</groupId>
@@ -17,6 +23,13 @@
             <groupId>com.googlecode.java-diff-utils</groupId>
             <artifactId>diffutils</artifactId>
             <version>1.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.atilika.kuromoji</groupId>
+            <artifactId>kuromoji</artifactId>
+            <version>0.7.7</version>
+            <type>jar</type>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

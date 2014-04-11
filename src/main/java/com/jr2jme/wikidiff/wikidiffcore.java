@@ -45,12 +45,15 @@ public class wikidiffcore {
 
         ExecutorService exec = Executors.newFixedThreadPool(20);
         int offset=0;
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
         int version=1;
         WhoWrite prevdata = null;
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList<String>();
         List<String> prevtext = new ArrayList<String>();
+        WhoWriteResult resultsarray= null;
+        int tail=0;
+        int head=0;
         while(cursor.hasNext()) {
             //List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
@@ -88,9 +91,19 @@ public class wikidiffcore {
                     List<String> delta = futurelist2.get(ver).get();
                     List<String> text = futurelist.get(ver).get();
 
-                    WhoWrite now=whowrite(current_editor,prevdata,text,prevtext,delta,ver);
-                    coll2.insert(now);
-                    prevdata=now;
+                    WhoWriteResult now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1);
+                    /*for(int ccc=0;ccc<tail%20;ccc++){
+                        now.compare(resultsarray[ccc]);
+                    }*/
+                    if(resultsarray!=null) {
+                        now.compare(resultsarray);
+                    }
+                    resultsarray=now;
+                    //resultsarray[tail%20]=now;
+                    //tail++;
+
+                    coll2.insert(now.whoWrite);
+                    prevdata=now.whoWrite;
                     prevtext=text;
 
 
@@ -100,8 +113,8 @@ public class wikidiffcore {
                     e.printStackTrace();
                 }
             }
-            offset+=100;
-            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
+            offset+=500;
+            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
         }
                 //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
                 //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
@@ -146,7 +159,7 @@ public class wikidiffcore {
 
     }*/
 
-    private static WhoWrite whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
+    private static WhoWriteResult whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;
         int b = 0;
         List<String> editors = new ArrayList<String>();
@@ -175,9 +188,34 @@ public class wikidiffcore {
             }
         }
 
-        return new WhoWrite(editors,"亀梨和也",ver);
+        return new WhoWriteResult(new WhoWrite(editors,"亀梨和也",ver),insertedterms,del);
+
+
 
     }
+
+
+
+}
+
+class WhoWriteResult {
+    WhoWrite whoWrite;
+    InsertedTerms insertedTerms;
+    DeletedTerms_ex deletedTerms;
+    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del){
+        whoWrite=who;
+        insertedTerms=insert;
+        deletedTerms=del;
+    }
+    public boolean compare(WhoWriteResult ddd){
+        if(this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms())) {
+            System.out.println(whoWrite.getVersion()+"revert");
+            return true;
+        }else{
+            return false;
+        }
+    }
+
 }
 
 /*class Task implements Runnable {//

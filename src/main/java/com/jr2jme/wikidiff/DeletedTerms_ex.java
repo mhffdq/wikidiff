@@ -12,7 +12,7 @@ import java.util.Map;
  */
 public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
 
-    Map<String,Integer> wordcount;
+    Map<String,Integer> wordcount=new HashMap<String, Integer>();
     Map<String,Map<String,Integer>> delterms=new HashMap<String, Map<String, Integer>>();
 
     public DeletedTerms_ex(String title,String editor,int version){
@@ -55,12 +55,14 @@ public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
         return new DeletedTerms(this.title,this.editor,dellist,this.version);
     }
 
+
     public void add(String editor,String term){
         Map<String,Integer> temp=null;
         if(delterms.containsKey(editor)){
             temp=delterms.get(editor);
             if(temp.containsKey(term)){
                 temp.put(term,temp.get(term)+1);
+
             }
             else{
                 temp.put(term,1);
@@ -69,6 +71,11 @@ public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
             temp=new HashMap<String,Integer>();
             temp.put(term,1);
             delterms.put(editor, temp);
+        }
+        if(wordcount.containsKey(term)){
+            wordcount.put(term,wordcount.get(term)+1);
+        }else{
+            wordcount.put(term,1);
         }
     }
 

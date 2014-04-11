@@ -20,11 +20,11 @@ public class WhoWrite {
         version=id;
     }
 
-    public void setRevid(int revid) {
-        this.version = revid;
+    public void setVersion(int version) {
+        this.version = version;
     }
 
-    public int getRevid() {
+    public int getVersion() {
         return version;
     }
 

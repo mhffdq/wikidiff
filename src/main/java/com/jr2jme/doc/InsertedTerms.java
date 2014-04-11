@@ -3,6 +3,7 @@ package com.jr2jme.doc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Map;
 public class InsertedTerms {
     String title;
     String editor;
-    Map<String,Integer> terms;
+    Map<String,Integer> terms=new HashMap<String, Integer>();
     int version;
     public InsertedTerms(){
 

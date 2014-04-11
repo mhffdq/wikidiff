@@ -43,7 +43,7 @@ public class wikidiffcore {
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
 
-        ExecutorService exec = Executors.newFixedThreadPool(10);
+        ExecutorService exec = Executors.newFixedThreadPool(20);
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+100).sort(DBSort.asc("version"));
         int version=1;
@@ -56,21 +56,13 @@ public class wikidiffcore {
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
             List<Kaiseki> tasks = new ArrayList<Kaiseki>();
             List<String> namelist=new ArrayList<String>();
+            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
             for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
-                tasks.add(new Kaiseki(wikitext));
+                futurelist.add(exec.submit(new Kaiseki(wikitext)));
                 namelist.add(wikitext.getName());
-            }
-
-            List<Future<List<String>>> futurelist = null;
-
-            try {
-                futurelist=exec.invokeAll(tasks);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
             int i=0;
             List<Task2> tasks2 = new ArrayList<Task2>();
-            assert futurelist != null;
             for(Future<List<String>> future:futurelist){//差分をとる
                 try {
                     tasks2.add(new Task2(future.get(), prev_text, "亀梨和也", version, namelist.get(i)));
@@ -159,17 +151,19 @@ public class wikidiffcore {
         int b = 0;
         List<String> editors = new ArrayList<String>();
         InsertedTerms insertedterms = new InsertedTerms("亀梨和也",currenteditor,ver);
-        DeletedTerms deletedterms=new DeletedTerms();
+        DeletedTerms_ex del=new DeletedTerms_ex("亀梨和也",currenteditor,ver);
+        //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
         for(int x=0;x<delta.size();x++){
             //System.out.println(delta.get(x));
             if(delta.get(x).equals("+")){
                 //System.out.println(text.get(a));
                 editors.add(currenteditor);
-                //insertedterms.add(text.get(a));
+                insertedterms.add(text.get(a));
                 a++;
             }
             else if(delta.get(x).equals("-")){
-                //deletedterms.add(prevtext.get(b),prevdata.getEditors().get(b));
+
+                del.add(prevdata.getEditors().get(b),prevtext.get(b));
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             }

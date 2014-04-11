@@ -13,12 +13,18 @@ import java.util.Map;
 public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
 
     Map<String,Integer> wordcount;
-    Map<String,Map<String,Integer>> delterms;
+    Map<String,Map<String,Integer>> delterms=new HashMap<String, Map<String, Integer>>();
+
+    public DeletedTerms_ex(String title,String editor,int version){
+        super.title=title;
+        super.editor=editor;
+        super.version=version;
+    }
 
     public DeletedTerms_ex(DeletedTerms superdel){
-        this.title = superdel.getTitle();
-        this.editor = superdel.getEditor();
-        this.version = superdel.getVersion();
+        super.title = superdel.getTitle();
+        super.editor = superdel.getEditor();
+        super.version = superdel.getVersion();
         wordcount=new HashMap<String, Integer>();
         delterms=new HashMap<String, Map<String, Integer>>(superdel.getTerms().size());
         for(Delete delete:superdel.getTerms()){
@@ -47,6 +53,23 @@ public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
             dellist.add(new Delete(entry.getKey(),termlist));
         }
         return new DeletedTerms(this.title,this.editor,dellist,this.version);
+    }
+
+    public void add(String editor,String term){
+        Map<String,Integer> temp=null;
+        if(delterms.containsKey(editor)){
+            temp=delterms.get(editor);
+            if(temp.containsKey(term)){
+                temp.put(term,temp.get(term)+1);
+            }
+            else{
+                temp.put(term,1);
+            }
+        }else{
+            temp=new HashMap<String,Integer>();
+            temp.put(term,1);
+            delterms.put(editor, temp);
+        }
     }
 
 

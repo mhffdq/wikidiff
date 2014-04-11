@@ -165,11 +165,11 @@ public class wikidiffcore {
             if(delta.get(x).equals("+")){
                 //System.out.println(text.get(a));
                 editors.add(currenteditor);
-                insertedterms.add(text.get(a));
+                //insertedterms.add(text.get(a));
                 a++;
             }
             else if(delta.get(x).equals("-")){
-                deletedterms.add(prevtext.get(b),prevdata.getEditors().get(b));
+                //deletedterms.add(prevtext.get(b),prevdata.getEditors().get(b));
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             }

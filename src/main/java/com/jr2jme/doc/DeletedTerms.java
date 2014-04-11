@@ -4,27 +4,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by Hirotaka on 2014/04/09.
  */
 public class DeletedTerms {
-    String title;
-    String editor;
-    Delete delterms;
-    int version;
+    protected String title;
+    protected String editor;
+    List<Delete> delterms;
+    protected int version;
+
     //Map<String,Integer> wordcount;
-    public DeletedTerms(){
+    public DeletedTerms() {
 
     }
-    public DeletedTerms(String title,String editor,Map<String,Delete> terms,int version){
-        this.title=title;
-        this.editor=editor;
-        this.terms=terms;
-        this.version=version;
-    }
 
+    public DeletedTerms(String title, String editor, List<Delete> terms, int version) {
+        this.title = title;
+        this.editor = editor;
+        this.delterms = terms;
+        this.version = version;
+    }
 
 
     public String getTitle() {
@@ -35,8 +35,8 @@ public class DeletedTerms {
         return editor;
     }
 
-    public Map<String,Delete> getTerms() {
-        return terms;
+    public List<Delete> getTerms() {
+        return delterms;
     }
 
     public int getVersion() {
@@ -44,11 +44,13 @@ public class DeletedTerms {
     }
 
     private String id;
+
     @ObjectId
     @JsonProperty("_id")
     public String getId() {
         return id;
     }
+
     @ObjectId
     @JsonProperty("_id")
     public void setId(String id) {
@@ -57,15 +59,15 @@ public class DeletedTerms {
 
     protected class Delete {
         String deletededitor;
-        List<termcount> words;
+        List<TermCount> words;
 
 
-        public Delete(String deletededitor, Map<String, Integer> words) {
+        public Delete(String deletededitor, List<TermCount> words) {
             this.deletededitor = deletededitor;
             this.words = words;
         }
 
-        public Map<String, Integer> getWords() {
+        public List<TermCount> getWords() {
             return words;
         }
 
@@ -73,29 +75,30 @@ public class DeletedTerms {
             return deletededitor;
         }
 
-        public void addTerm(String term) {
-            if (words.containsKey(term)) {
-                words.put(term, words.get(term) + 1);
-            } else {
-                words.put(term, 1);
-            }
+    }
+
+    protected class TermCount {
+        String term;
+        int count;
+
+        public void setCount(int count) {
+            this.count = count;
         }
 
-        @Override
-        public boolean equals(Object o) {
-            return deletededitor.equals(o);
+        public void setTer(String term) {
+            this.term = term;
         }
 
-        @Override
-        public int hashCode() {
-            return deletededitor.hashCode();
+        public int getCount() {
+            return count;
         }
-        protected class termcount {
-            String ter;
-            int count;
+
+        public String getTerm() {
+            return term;
         }
     }
 
 }
+
 
 

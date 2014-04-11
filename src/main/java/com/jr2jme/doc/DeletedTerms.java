@@ -3,9 +3,8 @@ package com.jr2jme.doc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by Hirotaka on 2014/04/09.
@@ -13,7 +12,7 @@ import java.util.Set;
 public class DeletedTerms {
     String title;
     String editor;
-    Map<String,Delete> terms;
+    Delete delterms;
     int version;
     //Map<String,Integer> wordcount;
     public DeletedTerms(){
@@ -24,23 +23,9 @@ public class DeletedTerms {
         this.editor=editor;
         this.terms=terms;
         this.version=version;
-        Map<String,Integer> wordcount=new HashMap<String, Integer>();
-        for(Delete delete:this.getTerms()){
-            Map<String,Integer>deletewords = delete.getWords();
-            for(String word:deletewords.keySet()){
-                if(wordcount.containsKey(word)){
-                    wordcount.put(word,deletewords.get(word));
-                }
-                else{
-                    wordcount.put(word,deletewords.get(word)+wordcount.get(word));
-                }
-            }
-        }
     }
 
-    public void add(String term,String editor){
 
-    }
 
     public String getTitle() {
         return title;
@@ -70,8 +55,47 @@ public class DeletedTerms {
         this.id = id;
     }
 
-    public boolean equalswords(Map<String,Integer> a){
-        return wordcount.equals(a);
+    protected class Delete {
+        String deletededitor;
+        List<termcount> words;
+
+
+        public Delete(String deletededitor, Map<String, Integer> words) {
+            this.deletededitor = deletededitor;
+            this.words = words;
+        }
+
+        public Map<String, Integer> getWords() {
+            return words;
+        }
+
+        public String getDeletededitor() {
+            return deletededitor;
+        }
+
+        public void addTerm(String term) {
+            if (words.containsKey(term)) {
+                words.put(term, words.get(term) + 1);
+            } else {
+                words.put(term, 1);
+            }
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return deletededitor.equals(o);
+        }
+
+        @Override
+        public int hashCode() {
+            return deletededitor.hashCode();
+        }
+        protected class termcount {
+            String ter;
+            int count;
+        }
     }
+
 }
+
 

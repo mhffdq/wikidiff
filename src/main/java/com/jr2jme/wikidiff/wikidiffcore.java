@@ -20,12 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-/**
- * Created by JR2JME on 2014/03/24.
- */
+
 public class wikidiffcore {
-    public static JacksonDBCollection<WikiTerms,String> coll3;
-    public static JacksonDBCollection<Delta,String> coll4;
+    static JacksonDBCollection<WikiTerms,String> coll3;
+    static JacksonDBCollection<Delta,String> coll4;
+    static String wikititle = null;
     public static void main(String[] arg){
         MongoClient mongo=null;
         try {
@@ -44,10 +43,10 @@ public class wikidiffcore {
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
-
+        wikititle= arg[0];
         ExecutorService exec = Executors.newFixedThreadPool(20);
         int offset=0;
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
         int version=1;
         WhoWrite prevdata = null;
         long start=System.currentTimeMillis();
@@ -55,11 +54,10 @@ public class wikidiffcore {
         List<String> prevtext = new ArrayList<String>();
         WhoWriteResult[] resultsarray= new WhoWriteResult[20];
         int tail=0;
-        int head=0;
+        int head;
         while(cursor.hasNext()) {
             //List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
-            List<Kaiseki> tasks = new ArrayList<Kaiseki>();
             List<String> namelist=new ArrayList<String>();
             List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
             for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
@@ -70,7 +68,7 @@ public class wikidiffcore {
             List<Task2> tasks2 = new ArrayList<Task2>();
             for(Future<List<String>> future:futurelist){//差分をとる
                 try {
-                    tasks2.add(new Task2(future.get(), prev_text, "亀梨和也", version, namelist.get(i)));
+                    tasks2.add(new Task2(future.get(), prev_text, wikititle, version, namelist.get(i)));
                     i++;
                     version++;
                     prev_text=future.get();
@@ -101,7 +99,22 @@ public class wikidiffcore {
                         head=tail;
                     }
                     for(int ccc=0;ccc<head;ccc++){
-                        now.compare(resultsarray[ccc]);
+                        if(now.compare(resultsarray[ccc])){
+                            int dd=0;
+                            int ad=0;
+                            for(String type:delta){
+                                if(type.equals("+")){
+                                    now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
+                                    dd++;
+                                    ad++;
+                                }
+                                else if(type.equals("|")){
+                                    ad++;
+                                }
+                            }
+                            //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
+                            break;
+                        }
                     }
 
                     resultsarray[tail%20]=now;
@@ -119,7 +132,7 @@ public class wikidiffcore {
                 }
             }
             offset+=500;
-            cursor = coll.find(DBQuery.is("title", "亀梨和也").greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
+            cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
         }
                 //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
                 //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
@@ -168,24 +181,23 @@ public class wikidiffcore {
         int a = 0;
         int b = 0;
         List<String> editors = new ArrayList<String>();
-        InsertedTerms insertedterms = new InsertedTerms("亀梨和也",currenteditor,ver);
-        DeletedTerms_ex del=new DeletedTerms_ex("亀梨和也",currenteditor,ver);
+        InsertedTerms insertedterms = new InsertedTerms(wikititle,currenteditor,ver);
+        DeletedTerms_ex del=new DeletedTerms_ex(wikititle,currenteditor,ver);
+        List<String> dellist=new ArrayList<String>();
         //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
-        for(int x=0;x<delta.size();x++){
+        for (String aDelta : delta) {
             //System.out.println(delta.get(x));
-            if(delta.get(x).equals("+")){
+            if (aDelta.equals("+")) {
                 //System.out.println(text.get(a));
                 editors.add(currenteditor);
                 insertedterms.add(text.get(a));
                 a++;
-            }
-            else if(delta.get(x).equals("-")){
-
-                del.add(prevdata.getEditors().get(b),prevtext.get(b));
+            } else if (aDelta.equals("-")) {
+                dellist.add(prevdata.getEditors().get(b));
+                del.add(prevdata.getEditors().get(b), prevtext.get(b));
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
-            }
-            else if(delta.get(x).equals("|")){
+            } else if (aDelta.equals("|")) {
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 editors.add(prevdata.getEditors().get(b));
                 a++;
@@ -193,7 +205,7 @@ public class wikidiffcore {
             }
         }
 
-        return new WhoWriteResult(new WhoWrite(editors,"亀梨和也",ver),insertedterms,del);
+        return new WhoWriteResult(new WhoWrite(editors,wikititle,ver),insertedterms,del,dellist);
 
 
 
@@ -207,13 +219,16 @@ class WhoWriteResult {
     WhoWrite whoWrite;
     InsertedTerms insertedTerms;
     DeletedTerms_ex deletedTerms;
-    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del){
+    List<String> dellist;
+    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist){
         whoWrite=who;
         insertedTerms=insert;
         deletedTerms=del;
+        this.dellist=dellist;
     }
     public boolean compare(WhoWriteResult ddd){
         if(this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms())) {
+            //取り消しだった場合
             System.out.println(whoWrite.getVersion()+":"+ddd.whoWrite.getVersion()+"revert");
             /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
                 System.out.println(hoge.getKey());
@@ -260,10 +275,10 @@ class Task2 implements Callable<List<String>> {//差分
     }
     @Override
     public List<String> call() {
-        wikidiffcore.coll3.insert(new WikiTerms("亀梨和也",version,current_text,name));
+        wikidiffcore.coll3.insert(new WikiTerms(title,version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
-        wikidiffcore.coll4.insert(new Delta("亀梨和也",version,diff,name));
+        wikidiffcore.coll4.insert(new Delta(title,version,diff,name));
         return diff;
     }
 }

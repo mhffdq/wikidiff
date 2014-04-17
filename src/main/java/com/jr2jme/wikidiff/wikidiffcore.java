@@ -16,6 +16,8 @@ import org.mongojack.DBSort;
 import org.mongojack.JacksonDBCollection;
 
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -92,14 +94,18 @@ public class wikidiffcore {
                     List<String> text = futurelist.get(ver).get();
 
                     WhoWriteResult now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1);
+                    int last;
                     if(tail>=20){
-                        head=20;
+                        last=20;
+                        head=tail+1;
                     }
                     else{
-                        head=tail;
+                        last=tail;
+                        head=0;
                     }
-                    for(int ccc=0;ccc<head;ccc++){
-                        if(now.compare(resultsarray[ccc])){
+                    for(int ccc=0;ccc<last;ccc++){
+
+                        if(now.compare(resultsarray[(head+ccc)%20])){
                             int dd=0;
                             int ad=0;
                             for(String type:delta){
@@ -113,6 +119,10 @@ public class wikidiffcore {
                                 }
                             }
                             //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
+                            break;
+                        }
+                        if(now.comparehash(resultsarray[ccc].texthash)){
+                            now.whoWrite=resultsarray[ccc].whoWrite;
                             break;
                         }
                     }
@@ -205,7 +215,7 @@ public class wikidiffcore {
             }
         }
 
-        return new WhoWriteResult(new WhoWrite(editors,wikititle,ver),insertedterms,del,dellist);
+        return new WhoWriteResult(new WhoWrite(editors,wikititle,ver),insertedterms,del,dellist,text);
 
 
 
@@ -220,14 +230,20 @@ class WhoWriteResult {
     InsertedTerms insertedTerms;
     DeletedTerms_ex deletedTerms;
     List<String> dellist;
-    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist){
+    String texthash;
+    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist,List<String> text){
         whoWrite=who;
         insertedTerms=insert;
         deletedTerms=del;
         this.dellist=dellist;
+        String tex = "";
+        for(String str:text){
+            tex +=str;
+        }
+        this.texthash=String2MD5(tex);
     }
     public boolean compare(WhoWriteResult ddd){
-        if(this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms())) {
+        if((this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms()))) {
             //取り消しだった場合
             System.out.println(whoWrite.getVersion()+":"+ddd.whoWrite.getVersion()+"revert");
             /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
@@ -237,6 +253,34 @@ class WhoWriteResult {
         }else{
             return false;
         }
+    }
+    public boolean comparehash(String hash){
+        return texthash.equals(hash);
+    }
+    private String String2MD5(String key){
+        byte[] hash = null;
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            md.update(key.getBytes());
+            hash = md.digest();
+        } catch (NoSuchAlgorithmException e) {
+            //
+        }
+        return hashByte2MD5(hash);
+    }
+
+    private String hashByte2MD5(byte []hash) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte aHash : hash) {
+            if ((0xff & aHash) < 0x10) {
+                hexString.append("0").append(Integer.toHexString((0xFF & aHash)));
+            } else {
+                hexString.append(Integer.toHexString(0xFF & aHash));
+            }
+        }
+
+        return hexString.toString();
     }
 
 }

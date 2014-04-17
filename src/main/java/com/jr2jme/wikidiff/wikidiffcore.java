@@ -23,11 +23,12 @@ import java.util.List;
 import java.util.concurrent.*;
 
 
-public class wikidiffcore {
-    static JacksonDBCollection<WikiTerms,String> coll3;
-    static JacksonDBCollection<Delta,String> coll4;
-    static String wikititle = null;
+public class wikidiffcore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
+    static JacksonDBCollection<WikiTerms,String> coll3;//テキストを形態素解析したやつ
+    static JacksonDBCollection<Delta,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
+    static String wikititle = null;//タイトル
     public static void main(String[] arg){
+        //mongo準備
         MongoClient mongo=null;
         try {
             mongo = new MongoClient("dragons.db.ss.is.nagoya-u.ac.jp",27017);
@@ -45,29 +46,29 @@ public class wikidiffcore {
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
-        wikititle= arg[0];
-        ExecutorService exec = Executors.newFixedThreadPool(20);
+        wikititle= arg[0];//タイトル取得
+        ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
         int offset=0;
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));//500件ずつテキストを持ってくる．
         int version=1;
         WhoWrite prevdata = null;
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList<String>();
         List<String> prevtext = new ArrayList<String>();
-        WhoWriteResult[] resultsarray= new WhoWriteResult[20];
+        WhoWriteResult[] resultsarray= new WhoWriteResult[20];//キューっぽいもの
         int tail=0;
         int head;
-        while(cursor.hasNext()) {
+        while(cursor.hasNext()) {//回す
             //List<List<String>> editlist=new ArrayList<List<String>>();
             //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
-            List<String> namelist=new ArrayList<String>();
-            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
+            List<String> namelist=new ArrayList<String>(cursor.size());
+            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>(cursor.size());
             for (Wikitext wikitext : cursor) {//まず100件ずつテキストを(並列で)形態素解析
                 futurelist.add(exec.submit(new Kaiseki(wikitext)));
                 namelist.add(wikitext.getName());
             }
             int i=0;
-            List<Task2> tasks2 = new ArrayList<Task2>();
+            List<Task2> tasks2 = new ArrayList<Task2>(futurelist.size());
             for(Future<List<String>> future:futurelist){//差分をとる
                 try {
                     tasks2.add(new Task2(future.get(), prev_text, wikititle, version, namelist.get(i)));
@@ -85,7 +86,7 @@ public class wikidiffcore {
                 futurelist2=exec.invokeAll(tasks2);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
+            }//差分ここまで
             assert futurelist2 != null;
             for(int ver=0;ver<futurelist2.size();ver++){//誰がどこを書いたかとか
                 String current_editor=namelist.get(ver);
@@ -103,7 +104,7 @@ public class wikidiffcore {
                         last=tail;
                         head=0;
                     }
-                    for(int ccc=0;ccc<last;ccc++){
+                    for(int ccc=0;ccc<last;ccc++){//リバート検知
 
                         if(now.compare(resultsarray[(head+ccc)%20])){
                             int dd=0;
@@ -190,12 +191,12 @@ public class wikidiffcore {
     private static WhoWriteResult whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;
         int b = 0;
-        List<String> editors = new ArrayList<String>();
+        List<String> editors = new ArrayList<String>(text.size());
         InsertedTerms insertedterms = new InsertedTerms(wikititle,currenteditor,ver);
         DeletedTerms_ex del=new DeletedTerms_ex(wikititle,currenteditor,ver);
         List<String> dellist=new ArrayList<String>();
         //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
-        for (String aDelta : delta) {
+        for (String aDelta : delta) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
             //System.out.println(delta.get(x));
             if (aDelta.equals("+")) {
                 //System.out.println(text.get(a));
@@ -230,7 +231,7 @@ class WhoWriteResult {
     InsertedTerms insertedTerms;
     DeletedTerms_ex deletedTerms;
     List<String> dellist;
-    String texthash;
+    String texthash;//比較用ハッシュ
     public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist,List<String> text){
         whoWrite=who;
         insertedTerms=insert;
@@ -243,7 +244,7 @@ class WhoWriteResult {
         this.texthash=String2MD5(tex);
     }
     public boolean compare(WhoWriteResult ddd){
-        if((this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms()))) {
+        if((this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms()))) {//ある編集と逆の操作をしているか
             //取り消しだった場合
             System.out.println(whoWrite.getVersion()+":"+ddd.whoWrite.getVersion()+"revert");
             /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
@@ -254,7 +255,7 @@ class WhoWriteResult {
             return false;
         }
     }
-    public boolean comparehash(String hash){
+    public boolean comparehash(String hash){//同じか
         return texthash.equals(hash);
     }
     private String String2MD5(String key){
@@ -318,7 +319,7 @@ class Task2 implements Callable<List<String>> {//差分
         this.name=name;
     }
     @Override
-    public List<String> call() {
+    public List<String> call() {//並列で差分
         wikidiffcore.coll3.insert(new WikiTerms(title,version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
@@ -328,7 +329,7 @@ class Task2 implements Callable<List<String>> {//差分
 }
 
 class Kaiseki implements Callable<List<String>> {//形態素解析
-    Wikitext wikitext;
+    Wikitext wikitext;//gosenだとなんか駄目だった
     public Kaiseki(Wikitext wikitext){
         this.wikitext=wikitext;
     }
@@ -346,13 +347,10 @@ class Kaiseki implements Callable<List<String>> {//形態素解析
 
         Tokenizer tokenizer = Tokenizer.builder().build();
         List<Token> tokens = tokenizer.tokenize(wikitext.getText());
-        List<String> current_text = new ArrayList<String>();
+        List<String> current_text = new ArrayList<String>(tokens.size());
 
         for (Token token : tokens) {
-            if(wikitext.getVersion()==358){
-                System.out.println(token.getSurfaceForm());
-            }
-            //System.out.println(token.getSurface());
+
             current_text.add(token.getSurfaceForm());
         }
         return current_text;

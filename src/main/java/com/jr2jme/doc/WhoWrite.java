@@ -3,21 +3,31 @@ package com.jr2jme.doc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
-import java.util.List;
-
 /**
  * Created by Hirotaka on 2014/04/08.
  */
 public class WhoWrite {
-    List<String> editors;
+    String editor;
     String title;
     int version;
+    String term;
+    int order;
     public WhoWrite(){
     }
-    public WhoWrite(List<String> editors,String title,int id){
-        this.editors=editors;
+    public WhoWrite(String editors,String title,int id,String term,int order){
+        this.editor=editors;
         this.title=title;
         version=id;
+        this.term=term;
+        this.order=order;
+    }
+
+    public String getTerm() {
+        return term;
+    }
+
+    public int getOrder() {
+        return order;
     }
 
     public void setVersion(int version) {
@@ -36,11 +46,11 @@ public class WhoWrite {
         return title;
     }
 
-    public void setEditors(List<String> text_editor) {
-        this.editors = text_editor;
+    public void setEditor(String text_editor) {
+        this.editor = text_editor;
     }
-    public List<String> getEditors(){
-        return editors;
+    public String getEditor(){
+        return editor;
     }
     private String id;
     @ObjectId

@@ -320,10 +320,10 @@ class Task2 implements Callable<List<String>> {//差分
     }
     @Override
     public List<String> call() {//並列で差分
-        wikidiffcore.coll3.insert(new WikiTerms(title,version,current_text,name));
+        //wikidiffcore.coll3.insert(new WikiTerms(title,version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
-        wikidiffcore.coll4.insert(new Delta(title,version,diff,name));
+        //wikidiffcore.coll4.insert(new Delta(title,version,diff,name));
         return diff;
     }
 }

@@ -16,18 +16,25 @@ import org.mongojack.DBSort;
 import org.mongojack.JacksonDBCollection;
 
 import java.net.UnknownHostException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.regex.Pattern;
 
 
-public class wikidiffcore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
-    static JacksonDBCollection<WikiTerms,String> coll3;//テキストを形態素解析したやつ
-    static JacksonDBCollection<Delta,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
-    static String wikititle = null;//タイトル
+public class WikiDiffCore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
+    private JacksonDBCollection<WikiTerms,String> coll3;//テキストを形態素解析したやつ
+    private JacksonDBCollection<Delta,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
+    private String wikititle = null;//タイトル
     public static void main(String[] arg){
+        WikiDiffCore wikidiff=new WikiDiffCore();
+        wikititle= title;//タイトル取得
+        Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
+        wikidiff.wikidiff(arg[0]);
+
+    }
+
+    public void wikidiff(String title){
         //mongo準備
         MongoClient mongo=null;
         try {
@@ -46,12 +53,12 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
         coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
 
-        wikititle= arg[0];//タイトル取得
+
         ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));//500件ずつテキストを持ってくる．
         int version=1;
-        WhoWrite prevdata = null;
+        WhoWriteVer prevdata = null;
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList<String>();
         List<String> prevtext = new ArrayList<String>();
@@ -68,10 +75,10 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
                 namelist.add(wikitext.getName());
             }
             int i=0;
-            List<Task2> tasks2 = new ArrayList<Task2>(futurelist.size());
+            List<CalDiff> tasks2 = new ArrayList<CalDiff>(futurelist.size());
             for(Future<List<String>> future:futurelist){//差分をとる
                 try {
-                    tasks2.add(new Task2(future.get(), prev_text, wikititle, version, namelist.get(i)));
+                    tasks2.add(new CalDiff(future.get(), prev_text, wikititle, version, namelist.get(i)));
                     i++;
                     version++;
                     prev_text=future.get();
@@ -111,7 +118,8 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
                             int ad=0;
                             for(String type:delta){
                                 if(type.equals("+")){
-                                    now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
+                                    now.getWhoWritever().getWhowritelist().get(ad).setEditor(resultsarray[ccc].getDellist().get(dd));
+                                    //now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
                                     dd++;
                                     ad++;
                                 }
@@ -122,8 +130,12 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
                             //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
                             break;
                         }
-                        if(now.comparehash(resultsarray[ccc].texthash)){
-                            now.whoWrite=resultsarray[ccc].whoWrite;
+                        if(now.comparehash(resultsarray[ccc].getTexthash())){//完全に戻していた場合
+                            int index=0;
+                            for(WhoWrite who:now.getWhoWritever().getWhowritelist()){
+                                who.setEditor(resultsarray[ccc].getWhoWritever().getWhowritelist().get(index).getEditor());
+                                index++;
+                            }
                             break;
                         }
                     }
@@ -131,8 +143,8 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
                     resultsarray[tail%20]=now;
                     tail++;
 
-                    coll2.insert(now.whoWrite);
-                    prevdata=now.whoWrite;
+                    coll2.insert(now.getWhoWritever().getWhowritelist());
+                    prevdata=now.getWhoWritever();
                     prevtext=text;
 
 
@@ -145,9 +157,9 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
             offset+=500;
             cursor = coll.find(DBQuery.is("title", wikititle).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
         }
-                //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
-                //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
-                //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
+        //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
+        //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
+        //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
         exec.shutdown();
         try {
             exec.awaitTermination(2, TimeUnit.SECONDS);
@@ -188,35 +200,35 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
 
     }*/
 
-    private static WhoWriteResult whowrite(String currenteditor,WhoWrite prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
+    private WhoWriteResult whowrite(String currenteditor,WhoWriteVer prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;
         int b = 0;
-        List<String> editors = new ArrayList<String>(text.size());
         InsertedTerms insertedterms = new InsertedTerms(wikititle,currenteditor,ver);
         DeletedTerms_ex del=new DeletedTerms_ex(wikititle,currenteditor,ver);
         List<String> dellist=new ArrayList<String>();
+        WhoWriteVer whoWritever=new WhoWriteVer(ver);
         //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
         for (String aDelta : delta) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
             //System.out.println(delta.get(x));
             if (aDelta.equals("+")) {
                 //System.out.println(text.get(a));
-                editors.add(currenteditor);
+                whoWritever.getWhowritelist().add(new WhoWrite(currenteditor,wikititle,ver,text.get(a),a));
                 insertedterms.add(text.get(a));
                 a++;
             } else if (aDelta.equals("-")) {
-                dellist.add(prevdata.getEditors().get(b));
-                del.add(prevdata.getEditors().get(b), prevtext.get(b));
+                dellist.add(prevdata.getWhowritelist().get(b).getEditor());
+                del.add(prevdata.getWhowritelist().get(b).getEditor(), prevtext.get(b));
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
                 b++;
             } else if (aDelta.equals("|")) {
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
-                editors.add(prevdata.getEditors().get(b));
+                whoWritever.getWhowritelist().add(new WhoWrite(currenteditor,wikititle,ver,text.get(a),a));
                 a++;
                 b++;
             }
         }
 
-        return new WhoWriteResult(new WhoWrite(editors,wikititle,ver),insertedterms,del,dellist,text);
+        return new WhoWriteResult(whoWritever,insertedterms,del,dellist,text,currenteditor);
 
 
 
@@ -226,65 +238,26 @@ public class wikidiffcore {//Wikipediaのログから差分をとって誰がど
 
 }
 
-class WhoWriteResult {
-    WhoWrite whoWrite;
-    InsertedTerms insertedTerms;
-    DeletedTerms_ex deletedTerms;
-    List<String> dellist;
-    String texthash;//比較用ハッシュ
-    public WhoWriteResult(WhoWrite who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist,List<String> text){
-        whoWrite=who;
-        insertedTerms=insert;
-        deletedTerms=del;
-        this.dellist=dellist;
-        String tex = "";
-        for(String str:text){
-            tex +=str;
-        }
-        this.texthash=String2MD5(tex);
+class WhoWriteVer {
+    List<WhoWrite> whowritelist=new ArrayList<WhoWrite>();
+    int version;
+    public WhoWriteVer(int ver){
+        version=ver;
     }
-    public boolean compare(WhoWriteResult ddd){
-        if((this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms()))) {//ある編集と逆の操作をしているか
-            //取り消しだった場合
-            System.out.println(whoWrite.getVersion()+":"+ddd.whoWrite.getVersion()+"revert");
-            /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
-                System.out.println(hoge.getKey());
-            }*/
-            return true;
-        }else{
-            return false;
-        }
-    }
-    public boolean comparehash(String hash){//同じか
-        return texthash.equals(hash);
-    }
-    private String String2MD5(String key){
-        byte[] hash = null;
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("MD5");
-            md.update(key.getBytes());
-            hash = md.digest();
-        } catch (NoSuchAlgorithmException e) {
-            //
-        }
-        return hashByte2MD5(hash);
+    public void addwhowrite(WhoWrite who){
+        this.whowritelist.add(who);
     }
 
-    private String hashByte2MD5(byte []hash) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte aHash : hash) {
-            if ((0xff & aHash) < 0x10) {
-                hexString.append("0").append(Integer.toHexString((0xFF & aHash)));
-            } else {
-                hexString.append(Integer.toHexString(0xFF & aHash));
-            }
-        }
-
-        return hexString.toString();
+    public int getVersion() {
+        return version;
     }
 
+    public List<WhoWrite> getWhowritelist() {
+        return whowritelist;
+    }
 }
+
+
 
 /*class Task implements Runnable {//
     JacksonDBCollection<WikiEdit,String> coll;
@@ -305,13 +278,13 @@ class WhoWriteResult {
     }
 }*/
 
-class Task2 implements Callable<List<String>> {//差分
+class CalDiff implements Callable<List<String>> {//差分
     List<String> current_text;
     List<String> prev_text;
     String title;
     int version;
     String name;
-    public Task2(List<String> current_text,List<String> prev_text,String title,int version,String name){
+    public CalDiff(List<String> current_text,List<String> prev_text,String title,int version,String name){
         this.current_text=current_text;
         this.prev_text=prev_text;
         this.title=title;

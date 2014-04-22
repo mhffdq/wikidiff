@@ -1,10 +1,14 @@
 package com.jr2jme.wikidiff;
 
+import com.jr2jme.doc.DeletedTerms;
 import com.jr2jme.doc.InsertedTerms;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Hirotaka on 2014/04/21.
@@ -12,25 +16,68 @@ import java.util.List;
 public class WhoWriteResult {
     private WhoWriteVer whoWritever;
     private InsertedTerms insertedTerms;
-    private DeletedTerms_ex deletedTerms;
-    private List<String> dellist;
+    private Map<String,DeletedTerms> deletedTerms;
+    private List<String> dellist=new ArrayList<String>();
+    Map<String,Integer> delwordcount = new HashMap<String, Integer>();
     //private String editor;
     private String texthash;//比較用ハッシュ
-    public WhoWriteResult(WhoWriteVer who,InsertedTerms insert,DeletedTerms_ex del,List<String> dellist,List<String> text,String editor){
-        whoWritever=who;
-        insertedTerms=insert;
-        deletedTerms=del;
-        this.dellist=dellist;
+    public WhoWriteResult(String title,List<String> text,String editor,int ver){
+        whoWritever=new WhoWriteVer(ver);
+        insertedTerms = new InsertedTerms(title,editor,ver);
+        deletedTerms=new HashMap<String, DeletedTerms>();
         String tex = "";
         for(String str:text){
             tex +=str;
         }
         this.texthash=String2MD5(tex);
+        for(Map.Entry<String,DeletedTerms>delete:this.getDeletedTerms().entrySet()){
+            for(String str:delete.getValue().getTerms()){
+                if(delwordcount.containsKey(str)){
+                    delwordcount.put(str,delwordcount.get(str)+1);
+                }
+                else{
+                    delwordcount.put(str,1);
+                }
+            }
+        }
     }
 
+    public void setDellist(List<String> dellist) {
+        this.dellist = dellist;
+    }
+
+    public void setWhoWritever(WhoWriteVer whoWritever) {
+        this.whoWritever = whoWritever;
+    }
+
+    public void setInsertedTerms(InsertedTerms insertedTerms) {
+        this.insertedTerms = insertedTerms;
+    }
+
+    public void setDeletedTerms(Map<String, DeletedTerms> deletedTerms) {
+        this.deletedTerms = deletedTerms;
+    }
     /*public String getEditor() {
         return editor;
     }*/
+
+    public Map<String, Integer> getWordcount() {
+        return delwordcount;
+    }
+
+    public void adddelterm(String preeditor,String term){
+
+        dellist.add(preeditor);
+        if(deletedTerms.containsKey(preeditor)) {
+            deletedTerms.get(preeditor).addterm(term);
+        }
+        else{
+            DeletedTerms deletedterms=new DeletedTerms(title,currenteditor,prevdata.getWhowritelist().get(b).getEditor(),ver);
+            deletedterms.addterm(prevtext.get(b));
+
+            del.put(prevdata.getWhowritelist().get(b).getEditor(),deletedterms);
+        }
+    }
 
     public WhoWriteVer getWhoWritever() {
         return whoWritever;
@@ -48,12 +95,13 @@ public class WhoWriteResult {
         return insertedTerms;
     }
 
-    public DeletedTerms_ex getDeletedTerms() {
+    public Map<String,DeletedTerms> getDeletedTerms() {
         return deletedTerms;
     }
 
     public boolean compare(WhoWriteResult ddd){
-        if((this.insertedTerms.getTerms().equals(ddd.deletedTerms.wordcount)&&this.deletedTerms.wordcount.equals(ddd.insertedTerms.getTerms()))) {//ある編集と逆の操作をしているか
+
+        if((this.insertedTerms.getTerms().equals(ddd.getWordcount())&&this.getWordcount().equals(ddd.insertedTerms.getTerms()))) {//ある編集と逆の操作をしているか
             //取り消しだった場合
             /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
                 System.out.println(hoge.getKey());

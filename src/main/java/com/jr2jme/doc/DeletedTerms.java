@@ -3,6 +3,7 @@ package com.jr2jme.doc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -10,32 +11,48 @@ import java.util.List;
  */
 public class DeletedTerms {
     protected String title;
-    protected String editor;
-    List<Delete> delterms;
+    protected String editorFrom;
+    String editorTo;
+    List<String> delterms=new ArrayList<String>();
     protected int version;
+    int total;
+    int delnum;
 
     //Map<String,Integer> wordcount;
     public DeletedTerms() {
-
     }
 
-    public DeletedTerms(String title, String editor, List<Delete> terms, int version) {
+    public DeletedTerms(String title, String editorFrom, String editorTo,int version) {
         this.title = title;
-        this.editor = editor;
-        this.delterms = terms;
+        this.editorFrom = editorFrom;
         this.version = version;
+        this.editorTo=editorTo;
     }
 
-
+    public void addterm(String term){
+        delterms.add(term);
+    }
     public String getTitle() {
         return title;
     }
 
-    public String getEditor() {
-        return editor;
+    public String getEditorFrom() {
+        return editorFrom;
     }
 
-    public List<Delete> getTerms() {
+    public String getEditorTo(){
+        return editorTo;
+    }
+
+    public void setTotal(int total) {
+        this.total = total;
+    }
+
+    public void setDelnum(int delnum) {
+        this.delnum = delnum;
+    }
+
+    public List<String> getTerms() {
         return delterms;
     }
 
@@ -57,49 +74,7 @@ public class DeletedTerms {
         this.id = id;
     }
 
-    protected class Delete {
-        String deletededitor;
-        List<TermCount> words;
 
-
-        public Delete(String deletededitor, List<TermCount> words) {
-            this.deletededitor = deletededitor;
-            this.words = words;
-        }
-
-        public List<TermCount> getWords() {
-            return words;
-        }
-
-        public String getDeletededitor() {
-            return deletededitor;
-        }
-
-    }
-
-    protected class TermCount {
-        String term;
-        int count;
-        public TermCount(String term,int count){
-            this.count=count;
-            this.term=term;
-        }
-        public void setCount(int count) {
-            this.count = count;
-        }
-
-        public void setTer(String term) {
-            this.term = term;
-        }
-
-        public int getCount() {
-            return count;
-        }
-
-        public String getTerm() {
-            return term;
-        }
-    }
 
 }
 

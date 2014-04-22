@@ -14,9 +14,6 @@ public class InsertedTerms {
     String editor;
     Map<String,Integer> terms=new HashMap<String, Integer>();
     int version;
-    public InsertedTerms(){
-
-    }
     public InsertedTerms(String title,String editor,int version){
         this.title=title;
         this.editor=editor;
@@ -29,12 +26,6 @@ public class InsertedTerms {
         else{
             terms.put(str,1);
         }
-    }
-    public InsertedTerms(String title,String editor,Map<String,Integer> terms,int version){
-        this.title=title;
-        this.editor=editor;
-        this.terms=terms;
-        this.version=version;
     }
 
     public String getTitle() {

@@ -1,8 +1,8 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.doc.Delta;
+import com.jr2jme.doc.DeletedTerms;
+import com.jr2jme.doc.InsertedTerms;
 import com.jr2jme.doc.WhoWrite;
-import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -21,8 +21,8 @@ import java.util.concurrent.*;
 
 
 public class WikiDiffCore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
-    private JacksonDBCollection<WikiTerms,String> coll3;//テキストを形態素解析したやつ
-    private JacksonDBCollection<Delta,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
+    private JacksonDBCollection<InsertedTerms,String> coll3;//テキストを形態素解析したやつ
+    private JacksonDBCollection<DeletedTerms,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
     //private String wikititle = null;//タイトル
     public static void main(String[] arg){
         WikiDiffCore wikidiff=new WikiDiffCore();
@@ -44,12 +44,12 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         DB db=mongo.getDB("wikipediaDB_kondou");
         DBCollection dbCollection=db.getCollection("text_test2");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        DBCollection dbCollection2=db.getCollection("edit_test2");
-        DBCollection dbCollection3=db.getCollection("terms");
-        DBCollection dbCollection4=db.getCollection("delta");
+        DBCollection dbCollection2=db.getCollection("edit_testk");
+        DBCollection dbCollection3=db.getCollection("Insertedterms");
+        DBCollection dbCollection4=db.getCollection("DeletedTerms");
         JacksonDBCollection<WhoWrite,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
-        coll3 = JacksonDBCollection.wrap(dbCollection3, WikiTerms.class,String.class);
-        coll4 = JacksonDBCollection.wrap(dbCollection4, Delta.class,String.class);
+        coll3 = JacksonDBCollection.wrap(dbCollection3, InsertedTerms.class,String.class);
+        coll4 = JacksonDBCollection.wrap(dbCollection4, DeletedTerms.class,String.class);
 
 
         ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
@@ -196,10 +196,10 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
     }*/
 
-    private WhoWriteResult whowrite(String title,String currenteditor,List<WhoWrite> prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
+    private WhoWriteResult whowrite(String title,String currenteditor,List<WhoWrite> prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver) {//誰がどこを書いたか
         int a = 0;//この関数が一番重要
         int b = 0;
-        WhoWriteResult whowrite = new WhoWriteResult(title,text,currenteditor,ver);
+        WhoWriteResult whowrite = new WhoWriteResult(title, text, currenteditor, ver);
         //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
         for (String aDelta : delta) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
             //System.out.println(delta.get(x));
@@ -208,17 +208,20 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                 whowrite.addaddterm(text.get(a));
                 a++;
             } else if (aDelta.equals("-")) {
-                whowrite.adddelterm(prevdata.get(b).getEditor(),prevtext.get(b));
+                whowrite.adddelterm(prevdata.get(b).getEditor(), prevtext.get(b));
                 b++;
             } else if (aDelta.equals("|")) {
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
-                whowrite.remain(prevdata.get(b).getEditor(),text.get(a));
+                whowrite.remain(prevdata.get(b).getEditor(), text.get(a));
                 a++;
                 b++;
             }
         }
         whowrite.complete(prevdata);
-
+        coll3.insert(whowrite.getInsertedTerms());
+        for (DeletedTerms de : whowrite.getDeletedTerms().values()){
+            coll4.insert(de);
+        }
         return whowrite;
 
 

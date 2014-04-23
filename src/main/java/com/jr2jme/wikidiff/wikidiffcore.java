@@ -217,6 +217,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                 b++;
             }
         }
+        whowrite.complete(prevdata);
 
         return whowrite;
 
@@ -227,28 +228,6 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
 
 }
-
-class WhoWriteVer {
-    List<WhoWrite> whowritelist=new ArrayList<WhoWrite>();
-    int version;
-    public WhoWriteVer(int ver){
-        version=ver;
-    }
-    public void addwhowrite(WhoWrite who){
-        this.whowritelist.add(who);
-    }
-
-    public int getVersion() {
-        return version;
-    }
-
-    public List<WhoWrite> getWhowritelist() {
-        return whowritelist;
-    }
-}
-
-
-
 /*class Task implements Runnable {//
     JacksonDBCollection<WikiEdit,String> coll;
     List<Term_Editor> data;

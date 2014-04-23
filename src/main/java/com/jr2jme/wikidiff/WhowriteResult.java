@@ -15,11 +15,11 @@ import java.util.Map;
  * Created by Hirotaka on 2014/04/21.
  */
 public class WhoWriteResult {
-    private WhoWriteVer whoWritever;
-    private InsertedTerms insertedTerms;
-    private Map<String,DeletedTerms> deletedTerms;
-    private List<String> dellist=new ArrayList<String>();
-    Map<String,Integer> delwordcount = new HashMap<String, Integer>();
+    private WhoWriteVer whoWritever=null;
+    private InsertedTerms insertedTerms=null;
+    private Map<String,DeletedTerms> deletedTerms=null;
+    private List<String> dellist=new ArrayList<String>();//消された編集者のリスト
+    Map<String,Integer> delwordcount = null;
     String title;
     String editor;
     int version;
@@ -38,16 +38,7 @@ public class WhoWriteResult {
             tex +=str;
         }
         this.texthash=String2MD5(tex);
-        for(Map.Entry<String,DeletedTerms>delete:this.getDeletedTerms().entrySet()){
-            for(String str:delete.getValue().getTerms()){
-                if(delwordcount.containsKey(str)){
-                    delwordcount.put(str,delwordcount.get(str)+1);
-                }
-                else{
-                    delwordcount.put(str,1);
-                }
-            }
-        }
+
     }
 
     public void setDellist(List<String> dellist) {
@@ -92,7 +83,7 @@ public class WhoWriteResult {
         order++;
     }
     public void remain(String preeditor,String term){
-        whoWritever.addwhowrite(preeditor,title,version,term,order));
+        whoWritever.addwhowrite(new WhoWrite(preeditor, title, version, term, order));
         order++;
     }
     public WhoWriteVer getWhoWritever() {
@@ -113,6 +104,39 @@ public class WhoWriteResult {
 
     public Map<String,DeletedTerms> getDeletedTerms() {
         return deletedTerms;
+    }
+
+    public void complete(WhoWriteVer prevdata){
+        Map<String,Integer> deletecount=new HashMap<String, Integer>();
+        for(String deleditor:dellist){//消された編集者
+            if(deletecount.containsKey(deleditor)){
+                deletecount.put(deleditor,deletecount.get(deleditor)+1);
+            }else{
+                deletecount.put(deleditor,1);
+            }
+        }
+        for(Map.Entry<String,DeletedTerms> deleditor:deletedTerms.entrySet()){//消された単語数登録
+            deleditor.getValue().setDelnum(deletecount.get(deleditor.getKey()));
+            int count=0;
+            for(WhoWrite who:whoWritever.getWhowritelist()){
+                if(deleditor.getKey().equals(who.getEditor())){
+                    count++;
+                }
+            }
+            deleditor.getValue().setTotal(count);
+
+        }
+        delwordcount = new HashMap<String, Integer>();
+        for(Map.Entry<String,DeletedTerms>delete:this.getDeletedTerms().entrySet()){
+            for(String str:delete.getValue().getTerms()){
+                if(delwordcount.containsKey(str)){
+                    delwordcount.put(str,delwordcount.get(str)+1);
+                }
+                else{
+                    delwordcount.put(str,1);
+                }
+            }
+        }
     }
 
     public boolean compare(WhoWriteResult ddd){
@@ -156,4 +180,23 @@ public class WhoWriteResult {
         return hexString.toString();
     }
 
+}
+
+class WhoWriteVer {
+    List<WhoWrite> whowritelist=new ArrayList<WhoWrite>();
+    int version;
+    public WhoWriteVer(int ver){
+        version=ver;
+    }
+    public void addwhowrite(WhoWrite who){
+        this.whowritelist.add(who);
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public List<WhoWrite> getWhowritelist() {
+        return whowritelist;
+    }
 }

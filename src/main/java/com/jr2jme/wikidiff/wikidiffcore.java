@@ -7,9 +7,8 @@ import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
-import net.java.sen.SenFactory;
-import net.java.sen.StringTagger;
-import net.java.sen.dictionary.Token;
+import org.atilika.kuromoji.Token;
+import org.atilika.kuromoji.Tokenizer;
 import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBSort;
@@ -25,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+
+//import net.java.sen.dictionary.Token;
 
 //import org.atilika.kuromoji.Token;
 
@@ -45,7 +46,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         }
         assert mongo != null;
         DB db=mongo.getDB("wikipediaDB_kondou");
-        DBCollection dbCollection=db.getCollection("wikitext");
+        DBCollection dbCollection=db.getCollection("wikitext_Islam");
         coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
         DBCollection dbCollection2=db.getCollection("editor_term_Islam");
         DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
@@ -59,7 +60,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         //wikititle= title;//タイトル取得
         //Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
         DBCursor<Wikitext>cur=null;
-        cur=wikidiff.wikidiff("亀梨和也");
+        cur=wikidiff.wikidiff("アクバル");
         cur.close();
         mongo.close();
         System.out.println("終了:"+arg[0]);
@@ -327,31 +328,35 @@ class Kaiseki implements Callable<List<String>> {//形態素解析
     @Override
     public List<String> call() {
 
-        StringTagger tagger = SenFactory.getStringTagger(null);
+        /*StringTagger tagger = SenFactory.getStringTagger(null);
         List<Token> tokens = new ArrayList<Token>();
         try {
             tagger.analyze(wikitext.getText(), tokens);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
 
-        List<String> current_text = new ArrayList<String>(tokens.size());
-        /*Tokenizer tokenizer = Tokenizer.builder().build();
+
+        Tokenizer tokenizer = Tokenizer.builder().build();
         List<Token> tokens = tokenizer.tokenize(wikitext.getText());
 
-        */
-        for(Token token:tokens){
+
+        List<String> current_text = new ArrayList<String>(tokens.size());
+        if(wikitext.getVersion()==94){
+            System.out.println(wikitext.getText());
+        }
+       /* for(Token token:tokens){
             if(wikitext.getVersion()==400){
                 System.out.println(token.getSurface());
             }
             current_text.add(token.getSurface());
-        }
-        /*for (Token token : tokens) {
+        }*/
+        for (Token token : tokens) {
             if(wikitext.getVersion()==94){
-                System.out.println(token.getBaseForm());
+                System.out.println(tokens.size());
             }
             current_text.add(token.getSurfaceForm());
-        }*/
+        }
         return current_text;
     }
 

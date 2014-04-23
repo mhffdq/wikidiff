@@ -14,22 +14,59 @@ import org.mongojack.DBQuery;
 import org.mongojack.DBSort;
 import org.mongojack.JacksonDBCollection;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.*;
 
 
 public class WikiDiffCore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
-    private JacksonDBCollection<InsertedTerms,String> coll3;//テキストを形態素解析したやつ
-    private JacksonDBCollection<DeletedTerms,String> coll4;//差分をとった結果のみ //"+","-","|"で表す．
+    private JacksonDBCollection<InsertedTerms,String> coll3;//insert
+    private JacksonDBCollection<DeletedTerms,String> coll4;//del
     //private String wikititle = null;//タイトル
     public static void main(String[] arg){
+        Set<String> aiming=fileRead("input.txt");
         WikiDiffCore wikidiff=new WikiDiffCore();
         //wikititle= title;//タイトル取得
         //Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
-        wikidiff.wikidiff(arg[0]);
+        for(String title:aiming) {
+            wikidiff.wikidiff(title);
+        }
 
+    }
+
+    public static Set fileRead(String filePath) {
+        FileReader fr = null;
+        BufferedReader br = null;
+        Set<String> aiming= new HashSet<String>(350);
+        try {
+            fr = new FileReader(filePath);
+            br = new BufferedReader(fr);
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                //System.out.println(line);
+                aiming.add(line);
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                br.close();
+                fr.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return aiming;
     }
 
     public void wikidiff(String title){
@@ -111,13 +148,13 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                     for(int ccc=0;ccc<last;ccc++){//リバート検知
                         int index=(head+ccc)%20;
                         if(now.compare(resultsarray[index])){
-                            System.out.println(now.version+":"+resultsarray[index].version);
+                            //System.out.println(now.version+":"+resultsarray[index].version);
                             int dd=0;
                             int ad=0;
                             for(String type:delta){
 
                                 if(type.equals("+")){
-                                    System.out.println(now.getInsertedTerms().getTerms().get(dd));
+                                    //System.out.println(now.getInsertedTerms().getTerms().get(dd));
                                     now.getWhoWritever().getWhowritelist().get(ad).setEditor(resultsarray[index].getDellist().get(dd));
                                     //now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
                                     dd++;

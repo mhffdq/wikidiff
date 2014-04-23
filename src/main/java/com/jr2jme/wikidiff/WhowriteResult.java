@@ -2,6 +2,7 @@ package com.jr2jme.wikidiff;
 
 import com.jr2jme.doc.DeletedTerms;
 import com.jr2jme.doc.InsertedTerms;
+import com.jr2jme.doc.WhoWrite;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -19,12 +20,19 @@ public class WhoWriteResult {
     private Map<String,DeletedTerms> deletedTerms;
     private List<String> dellist=new ArrayList<String>();
     Map<String,Integer> delwordcount = new HashMap<String, Integer>();
+    String title;
+    String editor;
+    int version;
+    int order=0;
     //private String editor;
     private String texthash;//比較用ハッシュ
     public WhoWriteResult(String title,List<String> text,String editor,int ver){
         whoWritever=new WhoWriteVer(ver);
         insertedTerms = new InsertedTerms(title,editor,ver);
         deletedTerms=new HashMap<String, DeletedTerms>();
+        this.editor=editor;
+        this.title=title;
+        this.version=ver;
         String tex = "";
         for(String str:text){
             tex +=str;
@@ -72,13 +80,21 @@ public class WhoWriteResult {
             deletedTerms.get(preeditor).addterm(term);
         }
         else{
-            DeletedTerms deletedterms=new DeletedTerms(title,currenteditor,prevdata.getWhowritelist().get(b).getEditor(),ver);
-            deletedterms.addterm(prevtext.get(b));
-
-            del.put(prevdata.getWhowritelist().get(b).getEditor(),deletedterms);
+            DeletedTerms deletedterms=new DeletedTerms(title,editor,preeditor,version);
+            deletedterms.addterm(term);
+            deletedTerms.put(preeditor,deletedterms);
         }
     }
 
+    public void addaddterm(String term){
+        whoWritever.addwhowrite(new WhoWrite(editor,title,version,term,order));
+        insertedTerms.add(term);
+        order++;
+    }
+    public void remain(String preeditor,String term){
+        whoWritever.addwhowrite(preeditor,title,version,term,order));
+        order++;
+    }
     public WhoWriteVer getWhoWritever() {
         return whoWritever;
     }

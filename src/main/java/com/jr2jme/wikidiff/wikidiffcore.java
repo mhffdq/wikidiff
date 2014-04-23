@@ -1,6 +1,8 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.doc.*;
+import com.jr2jme.doc.Delta;
+import com.jr2jme.doc.WhoWrite;
+import com.jr2jme.doc.WikiTerms;
 import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -14,9 +16,7 @@ import org.mongojack.JacksonDBCollection;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
 
 
@@ -199,37 +199,20 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
     private WhoWriteResult whowrite(String title,String currenteditor,WhoWriteVer prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;//この関数が一番重要
         int b = 0;
-
-        whoWritever,insertedterms,del,dellist,
         WhoWriteResult whowrite = new WhoWriteResult(title,text,currenteditor,ver);
-        InsertedTerms insertedterms = new InsertedTerms(title,currenteditor,ver);
-        Map<String,DeletedTerms> del=new HashMap<String,DeletedTerms>();
-        List<String> dellist=new ArrayList<String>();
-        WhoWriteVer whoWritever=new WhoWriteVer(ver);
         //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
         for (String aDelta : delta) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
             //System.out.println(delta.get(x));
             if (aDelta.equals("+")) {
                 //System.out.println(text.get(a));
-                whoWritever.addwhowrite(new WhoWrite(currenteditor,title,ver,text.get(a),a));
-                insertedterms.add(text.get(a));
+                whowrite.addaddterm(text.get(a));
                 a++;
             } else if (aDelta.equals("-")) {
-                dellist.add(prevdata.getWhowritelist().get(b).getEditor());
-                if(del.containsKey(prevdata.getWhowritelist().get(b).getEditor())) {
-                    del.get(prevdata.getWhowritelist().get(b).getEditor()).addterm(prevtext.get(b));
-                }
-                else{
-                    DeletedTerms deletedterms=new DeletedTerms(title,currenteditor,prevdata.getWhowritelist().get(b).getEditor(),ver);
-                    deletedterms.addterm(prevtext.get(b));
-                    del.put(prevdata.getWhowritelist().get(b).getEditor(),deletedterms);
-                }
-                //del.add(prevdata.getWhowritelist().get(b).getEditor(), prevtext.get(b));
-                //System.out.println(prevdata.getText_editor().get(b).getTerm());
+                whowrite.adddelterm(prevdata.getWhowritelist().get(b).getEditor(),prevtext.get(b));
                 b++;
             } else if (aDelta.equals("|")) {
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
-                whoWritever.getWhowritelist().add(new WhoWrite(currenteditor,title,ver,text.get(a),a));
+                whowrite.remain(prevdata.getWhowritelist().get(b).getEditor(),text.get(a));
                 a++;
                 b++;
             }

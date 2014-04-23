@@ -7,8 +7,9 @@ import com.jr2jme.st.Wikitext;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
-import org.atilika.kuromoji.Token;
-import org.atilika.kuromoji.Tokenizer;
+import net.java.sen.SenFactory;
+import net.java.sen.StringTagger;
+import net.java.sen.dictionary.Token;
 import org.mongojack.DBCursor;
 import org.mongojack.DBQuery;
 import org.mongojack.DBSort;
@@ -24,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
+
+//import org.atilika.kuromoji.Token;
 
 
 public class WikiDiffCore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
@@ -42,7 +45,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         }
         assert mongo != null;
         DB db=mongo.getDB("wikipediaDB_kondou");
-        DBCollection dbCollection=db.getCollection("wikitext_Islam");
+        DBCollection dbCollection=db.getCollection("wikitext");
         coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
         DBCollection dbCollection2=db.getCollection("editor_term_Islam");
         DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
@@ -56,11 +59,10 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         //wikititle= title;//タイトル取得
         //Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
         DBCursor<Wikitext>cur=null;
-
-        cur=wikidiff.wikidiff(arg[0]);
-
+        cur=wikidiff.wikidiff("亀梨和也");
         cur.close();
         mongo.close();
+        System.out.println("終了:"+arg[0]);
 
     }
 
@@ -186,7 +188,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                     resultsarray[tail%20]=now;
                     tail++;
 
-                    coll2.insert(now.getWhoWritever().getWhowritelist());
+                    //coll2.insert(now.getWhoWritever().getWhowritelist());//ここは20140423現在使う
                     prevdata=now.getWhoWritever().getWhowritelist();
                     prevtext=text;
 
@@ -265,10 +267,10 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
             }
         }
         whowrite.complete(prevdata);
-        coll3.insert(whowrite.getInsertedTerms());
+        /*coll3.insert(whowrite.getInsertedTerms());
         for (DeletedTerms de : whowrite.getDeletedTerms().values()){
             coll4.insert(de);
-        }
+        }*/
         return whowrite;
 
 
@@ -306,9 +308,6 @@ class CalDiff implements Callable<List<String>> {//差分
     public CalDiff(List<String> current_text,List<String> prev_text,String title,int version,String name){
         this.current_text=current_text;
         this.prev_text=prev_text;
-        this.title=title;
-        this.version=version;
-        this.name=name;
     }
     @Override
     public List<String> call() {//並列で差分
@@ -328,23 +327,31 @@ class Kaiseki implements Callable<List<String>> {//形態素解析
     @Override
     public List<String> call() {
 
-        /*StringTagger tagger = SenFactory.getStringTagger(null);
+        StringTagger tagger = SenFactory.getStringTagger(null);
         List<Token> tokens = new ArrayList<Token>();
         try {
             tagger.analyze(wikitext.getText(), tokens);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        */
 
-        Tokenizer tokenizer = Tokenizer.builder().build();
-        List<Token> tokens = tokenizer.tokenize(wikitext.getText());
         List<String> current_text = new ArrayList<String>(tokens.size());
+        /*Tokenizer tokenizer = Tokenizer.builder().build();
+        List<Token> tokens = tokenizer.tokenize(wikitext.getText());
 
-        for (Token token : tokens) {
-
-            current_text.add(token.getSurfaceForm());
+        */
+        for(Token token:tokens){
+            if(wikitext.getVersion()==400){
+                System.out.println(token.getSurface());
+            }
+            current_text.add(token.getSurface());
         }
+        /*for (Token token : tokens) {
+            if(wikitext.getVersion()==94){
+                System.out.println(token.getBaseForm());
+            }
+            current_text.add(token.getSurfaceForm());
+        }*/
         return current_text;
     }
 

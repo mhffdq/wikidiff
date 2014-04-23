@@ -27,17 +27,40 @@ import java.util.concurrent.*;
 
 
 public class WikiDiffCore {//Wikipediaのログから差分をとって誰がどこを書いたかを保存するもの リバート対応
-    private JacksonDBCollection<InsertedTerms,String> coll3;//insert
-    private JacksonDBCollection<DeletedTerms,String> coll4;//del
+    private static JacksonDBCollection<Wikitext,String> coll;
+    private static JacksonDBCollection<WhoWrite,String> coll2;
+    private static JacksonDBCollection<InsertedTerms,String> coll3;//insert
+    private static JacksonDBCollection<DeletedTerms,String> coll4;//del&
     //private String wikititle = null;//タイトル
     public static void main(String[] arg){
-        Set<String> aiming=fileRead("input.txt");
+       // Set<String> aiming=fileRead("input.txt");
+        MongoClient mongo=null;
+        try {
+            mongo = new MongoClient("dragons.db.ss.is.nagoya-u.ac.jp",27017);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        assert mongo != null;
+        DB db=mongo.getDB("wikipediaDB_kondou");
+        DBCollection dbCollection=db.getCollection("wikitext_Islam");
+        coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
+        DBCollection dbCollection2=db.getCollection("editor_term_Islam");
+        DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
+        DBCollection dbCollection4=db.getCollection("DeletedTerms_Islam");
+        coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
+        coll3 = JacksonDBCollection.wrap(dbCollection3, InsertedTerms.class,String.class);
+        coll4 = JacksonDBCollection.wrap(dbCollection4, DeletedTerms.class,String.class);
+
+
         WikiDiffCore wikidiff=new WikiDiffCore();
         //wikititle= title;//タイトル取得
         //Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
-        for(String title:aiming) {
-            wikidiff.wikidiff(title);
-        }
+        DBCursor<Wikitext>cur=null;
+
+        cur=wikidiff.wikidiff(arg[0]);
+
+        cur.close();
+        mongo.close();
 
     }
 
@@ -69,29 +92,12 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         return aiming;
     }
 
-    public void wikidiff(String title){
+    public DBCursor<Wikitext> wikidiff(String title){
         //mongo準備
-        MongoClient mongo=null;
-        try {
-            mongo = new MongoClient("dragons.db.ss.is.nagoya-u.ac.jp",27017);
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        }
-        assert mongo != null;
-        DB db=mongo.getDB("wikipediaDB_kondou");
-        DBCollection dbCollection=db.getCollection("wikitext_Islam");
-        JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        DBCollection dbCollection2=db.getCollection("editer_term");
-        DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
-        DBCollection dbCollection4=db.getCollection("DeletedTerms_Islam");
-        JacksonDBCollection<WhoWrite,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
-        coll3 = JacksonDBCollection.wrap(dbCollection3, InsertedTerms.class,String.class);
-        coll4 = JacksonDBCollection.wrap(dbCollection4, DeletedTerms.class,String.class);
-
 
         ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
         int offset=0;
-        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title",title).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));//500件ずつテキストを持ってくる．
+        DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title",title).greaterThan("version",offset)).lessThanEquals("version",offset+300).limit(300).sort(DBSort.asc("version"));//300件ずつテキストを持ってくる．
         int version=1;
         List<WhoWrite> prevdata = null;
         long start=System.currentTimeMillis();
@@ -167,7 +173,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                             //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
                             break;
                         }
-                        if(now.comparehash(resultsarray[ccc].getTexthash())){//完全に戻していた場合
+                        if(now.comparehash(resultsarray[ccc].getText())){//完全に戻していた場合
                             int indext=0;
                             for(WhoWrite who:now.getWhoWritever().getWhowritelist()){
                                 who.setEditor(resultsarray[ccc].getWhoWritever().getWhowritelist().get(indext).getEditor());
@@ -191,8 +197,9 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                     e.printStackTrace();
                 }
             }
-            offset+=500;
-            cursor = coll.find(DBQuery.is("title", title).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));
+            offset+=300;
+            System.out.println(offset);
+            cursor = coll.find(DBQuery.is("title", title).greaterThan("version",offset)).lessThanEquals("version",offset+300).limit(300).sort(DBSort.asc("version"));
         }
         //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
         //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
@@ -206,9 +213,8 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
         System.out.println(System.currentTimeMillis() - start);
         //coll2.insert(wikieditlist);
-        cursor.close();
-        mongo.close();
 
+        return cursor;
 
     }
 

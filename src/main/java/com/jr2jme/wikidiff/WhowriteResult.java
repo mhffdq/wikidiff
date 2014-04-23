@@ -25,7 +25,7 @@ public class WhoWriteResult {
     int version;
     int order=0;
     //private String editor;
-    private String texthash;//比較用ハッシュ
+    List<String> text;//比較用ハッシュ
     public WhoWriteResult(String title,List<String> text,String editor,int ver){
         whoWritever=new WhoWriteVer(ver);
         insertedTerms = new InsertedTerms(title,editor,ver);
@@ -33,11 +33,8 @@ public class WhoWriteResult {
         this.editor=editor;
         this.title=title;
         this.version=ver;
-        String tex = "";
-        for(String str:text){
-            tex +=str;
-        }
-        this.texthash=String2MD5(tex);
+
+        this.text=text;
 
     }
 
@@ -78,8 +75,8 @@ public class WhoWriteResult {
         return dellist;
     }
 
-    public String getTexthash() {
-        return texthash;
+    public List<String> getText() {
+        return text;
     }
 
     public InsertedTerms getInsertedTerms() {
@@ -124,8 +121,8 @@ public class WhoWriteResult {
             return false;
         }
     }
-    public boolean comparehash(String hash){//同じか
-        return texthash.equals(hash);
+    public boolean comparehash(List<String> hash){//同じか
+        return text.equals(hash);
     }
     private String String2MD5(String key){
         byte[] hash = null;

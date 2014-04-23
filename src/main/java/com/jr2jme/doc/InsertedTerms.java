@@ -3,7 +3,8 @@ package com.jr2jme.doc;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.mongojack.ObjectId;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,7 +13,7 @@ import java.util.Map;
 public class InsertedTerms {
     String title;
     String editor;
-    Map<String,Integer> terms=new HashMap<String, Integer>();
+    List<String> terms=new ArrayList<String>();
     int version;
     public InsertedTerms(String title,String editor,int version){
         this.title=title;
@@ -20,12 +21,7 @@ public class InsertedTerms {
         this.version=version;
     }
     public void add(String str){
-        if(terms.containsKey(str)){
-            terms.put(str,terms.get(str)+1);
-        }
-        else{
-            terms.put(str,1);
-        }
+        terms.add(str);
     }
 
     public String getTitle() {
@@ -36,7 +32,7 @@ public class InsertedTerms {
         return editor;
     }
 
-    public Map<String,Integer> getTerms() {
+    public List<String> getTerms() {
         return terms;
     }
 

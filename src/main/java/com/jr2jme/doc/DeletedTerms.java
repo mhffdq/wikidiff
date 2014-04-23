@@ -15,12 +15,10 @@ public class DeletedTerms {
     String editorTo;
     List<String> delterms=new ArrayList<String>();
     protected int version;
-    int total;
-    int delnum;
+    int total=0;
+    int delnum=0;
 
     //Map<String,Integer> wordcount;
-    public DeletedTerms() {
-    }
 
     public DeletedTerms(String title, String editorFrom, String editorTo,int version) {
         this.title = title;
@@ -58,6 +56,14 @@ public class DeletedTerms {
 
     public int getVersion() {
         return version;
+    }
+
+    public int getDelnum() {
+        return delnum;
+    }
+
+    public int getTotal() {
+        return total;
     }
 
     private String id;

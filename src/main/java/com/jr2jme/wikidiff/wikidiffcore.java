@@ -42,11 +42,11 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         }
         assert mongo != null;
         DB db=mongo.getDB("wikipediaDB_kondou");
-        DBCollection dbCollection=db.getCollection("text_test2");
+        DBCollection dbCollection=db.getCollection("wikitext_Islam");
         JacksonDBCollection<Wikitext,String> coll = JacksonDBCollection.wrap(dbCollection, Wikitext.class, String.class);
-        DBCollection dbCollection2=db.getCollection("edit_testk");
-        DBCollection dbCollection3=db.getCollection("Insertedterms");
-        DBCollection dbCollection4=db.getCollection("DeletedTerms");
+        DBCollection dbCollection2=db.getCollection("editer_term");
+        DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
+        DBCollection dbCollection4=db.getCollection("DeletedTerms_Islam");
         JacksonDBCollection<WhoWrite,String> coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
         coll3 = JacksonDBCollection.wrap(dbCollection3, InsertedTerms.class,String.class);
         coll4 = JacksonDBCollection.wrap(dbCollection4, DeletedTerms.class,String.class);
@@ -109,12 +109,16 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                         head=0;
                     }
                     for(int ccc=0;ccc<last;ccc++){//リバート検知
-                        if(now.compare(resultsarray[(head+ccc)%20])){
+                        int index=(head+ccc)%20;
+                        if(now.compare(resultsarray[index])){
+                            System.out.println(now.version+":"+resultsarray[index].version);
                             int dd=0;
                             int ad=0;
                             for(String type:delta){
+
                                 if(type.equals("+")){
-                                    now.getWhoWritever().getWhowritelist().get(ad).setEditor(resultsarray[ccc].getDellist().get(dd));
+                                    System.out.println(now.getInsertedTerms().getTerms().get(dd));
+                                    now.getWhoWritever().getWhowritelist().get(ad).setEditor(resultsarray[index].getDellist().get(dd));
                                     //now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
                                     dd++;
                                     ad++;
@@ -127,10 +131,10 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                             break;
                         }
                         if(now.comparehash(resultsarray[ccc].getTexthash())){//完全に戻していた場合
-                            int index=0;
+                            int indext=0;
                             for(WhoWrite who:now.getWhoWritever().getWhowritelist()){
-                                who.setEditor(resultsarray[ccc].getWhoWritever().getWhowritelist().get(index).getEditor());
-                                index++;
+                                who.setEditor(resultsarray[ccc].getWhoWritever().getWhowritelist().get(indext).getEditor());
+                                indext++;
                             }
                             break;
                         }

@@ -19,7 +19,7 @@ public class WhoWriteResult {
     private InsertedTerms insertedTerms=null;
     private Map<String,DeletedTerms> deletedTerms=null;
     private List<String> dellist=new ArrayList<String>();//消された編集者のリスト
-    Map<String,Integer> delwordcount = null;
+    List<String> delwordcount = new ArrayList<String>();
     String title;
     String editor;
     int version;
@@ -41,26 +41,9 @@ public class WhoWriteResult {
 
     }
 
-    public void setDellist(List<String> dellist) {
-        this.dellist = dellist;
-    }
 
-    public void setWhoWritever(WhoWriteVer whoWritever) {
-        this.whoWritever = whoWritever;
-    }
 
-    public void setInsertedTerms(InsertedTerms insertedTerms) {
-        this.insertedTerms = insertedTerms;
-    }
-
-    public void setDeletedTerms(Map<String, DeletedTerms> deletedTerms) {
-        this.deletedTerms = deletedTerms;
-    }
-    /*public String getEditor() {
-        return editor;
-    }*/
-
-    public Map<String, Integer> getWordcount() {
+    public List<String> getWordcount() {
         return delwordcount;
     }
 
@@ -75,6 +58,7 @@ public class WhoWriteResult {
             deletedterms.addterm(term);
             deletedTerms.put(preeditor,deletedterms);
         }
+        delwordcount.add(term);
     }
 
     public void addaddterm(String term){
@@ -126,22 +110,11 @@ public class WhoWriteResult {
             deleditor.getValue().setTotal(count);
 
         }
-        delwordcount = new HashMap<String, Integer>();
-        for(Map.Entry<String,DeletedTerms>delete:this.getDeletedTerms().entrySet()){
-            for(String str:delete.getValue().getTerms()){
-                if(delwordcount.containsKey(str)){
-                    delwordcount.put(str,delwordcount.get(str)+1);
-                }
-                else{
-                    delwordcount.put(str,1);
-                }
-            }
-        }
     }
 
     public boolean compare(WhoWriteResult ddd){
 
-        if((this.insertedTerms.getTerms().equals(ddd.getWordcount())&&this.getWordcount().equals(ddd.insertedTerms.getTerms()))) {//ある編集と逆の操作をしているか
+        if((this.insertedTerms.getTerms().equals(ddd.getWordcount())&&this.getWordcount().equals(ddd.getInsertedTerms().getTerms()))) {//ある編集と逆の操作をしているか
             //取り消しだった場合
             /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
                 System.out.println(hoge.getKey());

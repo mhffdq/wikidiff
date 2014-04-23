@@ -1,16 +1,9 @@
 package com.jr2jme.wikidiff;
 
-import com.jr2jme.doc.DeletedTerms;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Created by Hirotaka on 2014/04/09.
  */
-public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
+/*public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
 
     Map<String,Integer> wordcount=new HashMap<String, Integer>();
     Map<String,Map<String,Integer>> delterms=new HashMap<String, Map<String, Integer>>();
@@ -85,5 +78,5 @@ public class DeletedTerms_ex extends com.jr2jme.doc.DeletedTerms {
     public boolean equalswords(Map<String,Integer> a){
         return wordcount.equals(a);
     }
-}
+}*/
 

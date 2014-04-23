@@ -56,7 +56,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         int offset=0;
         DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title",title).greaterThan("version",offset)).lessThanEquals("version",offset+500).limit(500).sort(DBSort.asc("version"));//500件ずつテキストを持ってくる．
         int version=1;
-        WhoWriteVer prevdata = null;
+        List<WhoWrite> prevdata = null;
         long start=System.currentTimeMillis();
         List<String> prev_text=new ArrayList<String>();
         List<String> prevtext = new ArrayList<String>();
@@ -140,7 +140,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                     tail++;
 
                     coll2.insert(now.getWhoWritever().getWhowritelist());
-                    prevdata=now.getWhoWritever();
+                    prevdata=now.getWhoWritever().getWhowritelist();
                     prevtext=text;
 
 
@@ -196,7 +196,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
     }*/
 
-    private WhoWriteResult whowrite(String title,String currenteditor,WhoWriteVer prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
+    private WhoWriteResult whowrite(String title,String currenteditor,List<WhoWrite> prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver){//誰がどこを書いたか
         int a = 0;//この関数が一番重要
         int b = 0;
         WhoWriteResult whowrite = new WhoWriteResult(title,text,currenteditor,ver);
@@ -208,11 +208,11 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                 whowrite.addaddterm(text.get(a));
                 a++;
             } else if (aDelta.equals("-")) {
-                whowrite.adddelterm(prevdata.getWhowritelist().get(b).getEditor(),prevtext.get(b));
+                whowrite.adddelterm(prevdata.get(b).getEditor(),prevtext.get(b));
                 b++;
             } else if (aDelta.equals("|")) {
                 //System.out.println(prevdata.getText_editor().get(b).getTerm());
-                whowrite.remain(prevdata.getWhowritelist().get(b).getEditor(),text.get(a));
+                whowrite.remain(prevdata.get(b).getEditor(),text.get(a));
                 a++;
                 b++;
             }

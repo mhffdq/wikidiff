@@ -106,7 +106,7 @@ public class WhoWriteResult {
         return deletedTerms;
     }
 
-    public void complete(WhoWriteVer prevdata){
+    public void complete(List<WhoWrite> prevdata){
         Map<String,Integer> deletecount=new HashMap<String, Integer>();
         for(String deleditor:dellist){//消された編集者
             if(deletecount.containsKey(deleditor)){
@@ -118,7 +118,7 @@ public class WhoWriteResult {
         for(Map.Entry<String,DeletedTerms> deleditor:deletedTerms.entrySet()){//消された単語数登録
             deleditor.getValue().setDelnum(deletecount.get(deleditor.getKey()));
             int count=0;
-            for(WhoWrite who:whoWritever.getWhowritelist()){
+            for(WhoWrite who:prevdata){
                 if(deleditor.getKey().equals(who.getEditor())){
                     count++;
                 }

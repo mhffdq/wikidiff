@@ -12,16 +12,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
-
-//import org.mongojack.DBCursor;
-//import org.mongojack.DBQuery;
-//import org.mongojack.DBSort;
-//import org.mongojack.JacksonDBCollection;
 
 //import org.atilika.kuromoji.Token;
 
@@ -102,12 +94,11 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         final int NUMBER=50;
         ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
         int offset=0;
-        //DBCursor<Wikitext> cursor = coll.find(DBQuery.is("title",title).greaterThan("version",offset)).lessThanEquals("version",offset+NUMBER).limit(NUMBER).sort(DBSort.asc("version"));//300件ずつテキストを持ってくる．
         BasicDBObject findQuery = new BasicDBObject();//
-        findQuery.put("title", title).;
+        findQuery.put("title", title);
+        findQuery.put("version",new BasicDBObject("$gt",offset));
         BasicDBObject sortQuery = new BasicDBObject();
-        sortQuery.put("version", offset);
-        // limit versionsごと検索
+        sortQuery.put("version", 1);
         DBCursor cursor = coll.find(findQuery).sort(sortQuery).limit(NUMBER);
         int version=1;
         List<WhoWrite> prevdata = null;
@@ -118,16 +109,13 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         int tail=0;
         int head;
         while(cursor.hasNext()) {//回す
-            //List<List<String>> editlist=new ArrayList<List<String>>();
-            //List<WikiEdit> wikieditlist = new ArrayList<WikiEdit>(50);
             List<String> namelist=new ArrayList<String>();
-            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>();
+            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>(NUMBER+1);
             for (DBObject dbObject:cursor) {//まず100件ずつテキストを(並列で)形態素解析
-                //futurelist.add(exec.submit(new Kaiseki(wikitext)));
-                //namelist.add(wikitext.getName());
-                //System.out.println(wikitext.getVersion());
-                //if((Integer)dbObject.get("version")==460)
-                System.out.println((String)dbObject.get("text"));
+                Wikitext wikitext=new Wikitext(title,(Date)dbObject.get("date"),(String)dbObject.get("name"),(String)dbObject.get("text"),(Integer)dbObject.get("revid"),(String)dbObject.get("comment"),(Integer)dbObject.get("version"));
+                futurelist.add(exec.submit(new Kaiseki(wikitext)));
+                namelist.add(wikitext.getName());
+                System.out.println(wikitext.getVersion());
 
             }
             cursor.close();
@@ -215,11 +203,13 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
             }
             offset+=NUMBER;
             System.out.println(offset);
-            cursor = coll.find(DBQuery.is("title", title).greaterThan("version",offset)).lessThanEquals("version",offset+NUMBER).limit(NUMBER).sort(DBSort.asc("version"));
+            findQuery = new BasicDBObject();//
+            findQuery.put("title", title);
+            findQuery.put("version", new BasicDBObject("$gt", offset).append("$lte", offset + NUMBER));
+            sortQuery = new BasicDBObject();
+            sortQuery.put("version", 1);
+            cursor = coll.find(findQuery).sort(sortQuery).limit(NUMBER);
         }
-        //wikieditlist.add(new WikiEdit(data,wikitext.getTitle(),version));
-        //coll2.insert(new WikiEdit(data,wikitext.getTitle(),version));
-        //exec.submit(new Task(coll2, data, wikitext.getTitle(), version));
         exec.shutdown();
         try {
             exec.awaitTermination(2, TimeUnit.SECONDS);
@@ -228,42 +218,15 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         }
 
         System.out.println(System.currentTimeMillis() - start);
-        //coll2.insert(wikieditlist);
 
         return cursor;
 
     }
 
-    /*public void makehoge(List<String[]> diff){
-        for (String[] st : diff) {
-            if (st[1].equals("i")) {
-                Term_Editor tes = new Term_Editor(st[0], wikitext.getName());
-                data.add(tes);
-            } else if (st[1].equals("d")) {
-
-                if (deleteterms.containsKey(predata.get(i))) {
-                    deleteterms.get(predata.get(i).getName()).add(predata.get(i).getTerm());
-                } else {
-                    List<String> terms = new ArrayList<String>();
-                    terms.add(predata.get(i).getTerm());
-                    deleteterms.put(predata.get(i).getName(), terms);
-                }
-                i++;
-            } else if (st[1].equals("r")) {
-                Term_Editor tes = new Term_Editor(st[0], predata.get(i).getName());
-                data.add(tes);
-                i++;
-            }
-
-        }
-
-    }*/
-
     private WhoWriteResult whowrite(String title,String currenteditor,List<WhoWrite> prevdata,List<String> text,List<String> prevtext,List<String> delta,int ver) {//誰がどこを書いたか
         int a = 0;//この関数が一番重要
         int b = 0;
         WhoWriteResult whowrite = new WhoWriteResult(title, text, currenteditor, ver);
-        //Map<String,Map<String,Integer>> deleted= new HashMap<String, Map<String, Integer>>();
         for (String aDelta : delta) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
             //System.out.println(delta.get(x));
             if (aDelta.equals("+")) {
@@ -294,24 +257,6 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
 
 }
-/*class Task implements Runnable {//
-    JacksonDBCollection<WikiEdit,String> coll;
-    List<Term_Editor> data;
-    String name;
-    int version;
-    public Task(JacksonDBCollection<WikiEdit,String> coll,List<Term_Editor> data,String name,int version) {
-        this.coll=coll;
-        this.data=data;
-        this.name=name;
-        this.version=version;
-    }
-    @Override
-    public void run(){
-        //long start=System.currentTimeMillis();
-        coll.insert(new WikiEdit(data, name, version));
-        //System.out.println(System.currentTimeMillis() - start);
-    }
-}*/
 
 class CalDiff implements Callable<List<String>> {//差分
     List<String> current_text;
@@ -325,10 +270,8 @@ class CalDiff implements Callable<List<String>> {//差分
     }
     @Override
     public List<String> call() {//並列で差分
-        //wikidiffcore.coll3.insert(new WikiTerms(title,version,current_text,name));
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
-        //wikidiffcore.coll4.insert(new Delta(title,version,diff,name));
         return diff;
     }
 }

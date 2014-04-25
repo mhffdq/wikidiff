@@ -15,7 +15,7 @@ import java.util.Map;
  * Created by Hirotaka on 2014/04/21.
  */
 public class WhoWriteResult {
-    private WhoWriteVer whoWritever=null;
+    WhoWriteVer whoWritever=null;
     private InsertedTerms insertedTerms=null;
     private Map<String,DeletedTerms> deletedTerms=null;
     private List<String> dellist=new ArrayList<String>();//消された編集者のリスト
@@ -152,21 +152,3 @@ public class WhoWriteResult {
 
 }
 
-class WhoWriteVer {
-    List<WhoWrite> whowritelist=new ArrayList<WhoWrite>();
-    int version;
-    public WhoWriteVer(int ver){
-        version=ver;
-    }
-    public void addwhowrite(WhoWrite who){
-        this.whowritelist.add(who);
-    }
-
-    public int getVersion() {
-        return version;
-    }
-
-    public List<WhoWrite> getWhowritelist() {
-        return whowritelist;
-    }
-}

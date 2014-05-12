@@ -11,7 +11,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="lucene-gosen-4.7.0-naist-chasen" level="project" />
     <orderEntry type="library" name="Maven: org.mongojack:mongojack:2.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.mongodb:mongo-java-driver:2.12.0" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.2.3" level="project" />
@@ -21,6 +20,7 @@
     <orderEntry type="library" name="Maven: javax.persistence:persistence-api:1.0.2" level="project" />
     <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" name="Maven: org.atilika.kuromoji:kuromoji:0.7.7" level="project" />
+    <orderEntry type="library" name="lucene-gosen-4.7.2-naist-chasen" level="project" />
   </component>
 </module>
 

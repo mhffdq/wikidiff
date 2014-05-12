@@ -11,25 +11,25 @@ import java.util.List;
 /**
  * Created by Hirotaka on 2014/03/26.
  */
-public class Levenshtein3 {
+public class Levenshtein3<T> {
     private EditNode2[] fp=null;
     private int m;
     private int n;
     private int offset;
-    private int delta;
-    private int size;
-    private List<String> A;
-    private List<String> B;
+    private List<T> A;
+    private List<T> B;
 
 
-    public List<String> diff(List<String> a, List<String> b){
+    public List<String> diff(List<T> a, List<T> b){
+        int delta;
+        int size;
         m = a.size();
         n = b.size();
         A=a;
         B=b;
         Boolean reverse=false;
         if(n>m){//入れ替え
-            List<String> x;
+            List<T> x;
             x=A;
             A=B;
             B=x;
@@ -48,8 +48,8 @@ public class Levenshtein3 {
             if(reverse){
                 type="+";
             }
-            for(String hoge:A){
-                String[] array = {hoge,type};
+            for(T hoge:A){
+                //String[] array = {hoge,type};
                 list.add(type);
             }
             return list;
@@ -81,20 +81,20 @@ public class Levenshtein3 {
             String type=i.getType();
             if(reverse){
                 if(type.equals("+")){
-                    String[] str={B.get(b_index),"d"};
+                    //String[] str={B.get(b_index),"d"};
                     list.add("-");
                     //currenttype=0;
                     b_index--;
                 }
                 else if(type.equals("-")){
-                    String[] str={A.get(a_index),"i"};
+                    //String[] str={A.get(a_index),"i"};
                     list.add("+");
 
                     //currenttype=1;
                     a_index--;
                 }
                 else if(type.equals("|")){
-                    String[] str={A.get(a_index),"r"};
+                    //String[] str={A.get(a_index),"r"};
                     list.add("|");
 
                     //currenttype=2;

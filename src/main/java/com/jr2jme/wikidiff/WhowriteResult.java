@@ -39,7 +39,9 @@ public class WhoWriteResult {
     }
 
 
-
+    public String getEditor(){
+        return editor;
+    }
     public List<String> getWordcount() {
         return delwordcount;
     }

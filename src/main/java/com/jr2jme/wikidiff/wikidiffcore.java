@@ -1,18 +1,19 @@
 package com.jr2jme.wikidiff;
 
 import com.jr2jme.doc.WhoWrite;
-import com.jr2jme.st.Wikitext;
 import com.mongodb.*;
 import net.java.sen.SenFactory;
 import net.java.sen.StringTagger;
 import net.java.sen.dictionary.Token;
+import net.java.sen.filter.stream.CompositeTokenFilter;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Arrays;
 import java.util.concurrent.*;
 
 //import org.atilika.kuromoji.Token;
@@ -28,6 +29,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
     //private static JacksonDBCollection<InsertedTerms,String> coll3;//insert
     //private static JacksonDBCollection<DeletedTerms,String> coll4;//del&
     //private String wikititle = null;//タイトル
+    static DB db=null;
     public static void main(String[] arg){
        // Set<String> aiming=fileRead("input.txt");
         MongoClient mongo=null;
@@ -44,6 +46,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         DBCollection dbCollection2=db.getCollection("editor_term_Islam");
         DBCollection dbCollection3=db.getCollection("Insertedterms_Islam");
         DBCollection dbCollection4=db.getCollection("DeletedTerms_Islam");
+
         //coll2 = JacksonDBCollection.wrap(dbCollection2, WhoWrite.class,String.class);
         //coll3 = JacksonDBCollection.wrap(dbCollection3, InsertedTerms.class,String.class);
         //coll4 = JacksonDBCollection.wrap(dbCollection4, DeletedTerms.class,String.class);
@@ -53,7 +56,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         //wikititle= title;//タイトル取得
         //Pattern pattern = Pattern.compile(title+"/log.+|"+title+"/history.+");
         Cursor cur=null;
-        cur=wikidiff.wikidiff("イスタンブル");
+        cur=wikidiff.wikidiff("アクバル");
         cur.close();
         mongo.close();
         System.out.println("終了:"+arg[0]);
@@ -92,6 +95,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
     public Cursor wikidiff(String title){
         //mongo準備
         final int NUMBER=50;
+        //DBCollection dbCollection5=db.getCollection("Revert");
         ExecutorService exec = Executors.newFixedThreadPool(20);//マルチすれっど準備 20並列
         int offset=0;
         BasicDBObject findQuery = new BasicDBObject();//
@@ -110,28 +114,32 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
         int head;
         while(cursor.hasNext()) {//回す
             List<String> namelist=new ArrayList<String>();
-            List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>(NUMBER+1);
+            List<String> wikitext=new ArrayList<String>();
+            //List<Future<List<String>>> futurelist = new ArrayList<Future<List<String>>>(NUMBER+1);
             for (DBObject dbObject:cursor) {//まず100件ずつテキストを(並列で)形態素解析
-                Wikitext wikitext=new Wikitext(title,(Date)dbObject.get("date"),(String)dbObject.get("name"),(String)dbObject.get("text"),(Integer)dbObject.get("revid"),(String)dbObject.get("comment"),(Integer)dbObject.get("version"));
-                futurelist.add(exec.submit(new Kaiseki(wikitext)));
-                namelist.add(wikitext.getName());
-                System.out.println(wikitext.getVersion());
+                //Wikitext wikitext=new Wikitext(title,(Date)dbObject.get("date"),(String)dbObject.get("name"),(String)dbObject.get("text"),(Integer)dbObject.get("revid"),(String)dbObject.get("comment"),(Integer)dbObject.get("version"));
+                wikitext.add((String)dbObject.get("text"));
+                //futurelist.add(exec.submit(new Kaiseki((String)dbObject.get("text"))));
+                namelist.add((String)dbObject.get("name"));
+
+
+                /*System.out.println(nowchange.size());
+                for(String how:nowchange){
+                    System.out.println(how);
+                }*/
+                //System.out.println(wikitext.getVersion());
 
             }
             cursor.close();
             int i=0;
-            List<CalDiff> tasks2 = new ArrayList<CalDiff>(futurelist.size());
-            for(Future<List<String>> future:futurelist){//差分をとる
-                try {
-                    tasks2.add(new CalDiff(future.get(), prev_text, title, version, namelist.get(i)));
-                    i++;
-                    version++;
-                    prev_text=future.get();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
+            List<CalDiff> tasks2 = new ArrayList<CalDiff>(wikitext.size());
+            for(String future:wikitext){//差分をとる
+                List<String> parastr= Arrays.asList(future.split("\n\n|。"));
+                tasks2.add(new CalDiff(parastr, prev_text));
+                i++;
+                version++;
+                prev_text=parastr;
+
             }
             List<Future<List<String>>> futurelist2 = null;
             try {
@@ -143,7 +151,32 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                 String current_editor=namelist.get(ver);
                 try {
                     List<String> delta = futurelist2.get(ver).get();
-                    List<String> text = futurelist.get(ver).get();
+                    StringTagger tagger = SenFactory.getStringTagger(null);
+                    CompositeTokenFilter ctFilter = new CompositeTokenFilter();
+
+                    try {
+                        ctFilter.readRules(new BufferedReader(new StringReader("名詞-数")));
+                        tagger.addFilter(ctFilter);
+
+                        ctFilter.readRules(new BufferedReader(new StringReader("記号-アルファベット")));
+                        tagger.addFilter(ctFilter);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    List<Token> tokens = new ArrayList<Token>();
+                    try {
+                        tokens=tagger.analyze(wikitext.get(ver), tokens);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    List<String> current_text = new ArrayList<String>(tokens.size());
+                    List<String> text = new ArrayList<String>();
+                    for(Token token:tokens){
+
+                        text.add(token.getSurface());
+                    }
+
 
                     WhoWriteResult now=whowrite(title,current_editor,prevdata,text,prevtext,delta,offset+ver+1);
                     int last;
@@ -155,7 +188,9 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                         last=tail;
                         head=0;
                     }
-                    for(int ccc=0;ccc<last;ccc++){//リバート検知
+                    List<String> edrvted=new ArrayList<String>();
+                    List<Integer> rvted=new ArrayList<Integer>();
+                    for(int ccc=last-1;ccc>=0;ccc--){//リバート検知
                         int index=(head+ccc)%20;
                         if(now.compare(resultsarray[index])){
                             //System.out.println(now.version+":"+resultsarray[index].version);
@@ -174,16 +209,29 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                                     ad++;
                                 }
                             }
+                            BasicDBObject obj = new BasicDBObject();
+                            obj.append("title",title).append("version",version).append("editor",now.getEditor()).append("rvted",rvted).append("edrvted",edrvted);
+                            //dbCollection5.insert(obj);
                             //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
                             break;
                         }
-                        if(now.comparehash(resultsarray[ccc].getText())){//完全に戻していた場合
-                            int indext=0;
-                            for(WhoWrite who:now.getWhoWritever().getWhowritelist()){
-                                who.setEditor(resultsarray[ccc].getWhoWritever().getWhowritelist().get(indext).getEditor());
-                                indext++;
+                        if(ccc!=last-1) {
+                            if (now.comparehash(resultsarray[index].getText())) {//完全に戻していた場合
+                                int indext = 0;
+                                for (WhoWrite who : now.getWhoWritever().getWhowritelist()) {
+                                    who.setEditor(resultsarray[index].getWhoWritever().getWhowritelist().get(indext).getEditor());
+                                    indext++;
+                                }
+                                for (int cou = ccc + 1; cou < last; cou++) {
+                                    int idx = (head + cou) % 20;
+                                    rvted.add(resultsarray[idx].getInsertedTerms().getVersion());
+                                    edrvted.add(resultsarray[idx].getInsertedTerms().getEditor());
+                                }
+                                BasicDBObject obj = new BasicDBObject();
+                                obj.append("title", title).append("version", version).append("editor", now.getEditor()).append("rvted", rvted).append("edrvted", edrvted);
+                                //dbCollection5.insert(obj);
+                                break;
                             }
-                            break;
                         }
                     }
 
@@ -202,7 +250,7 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                 }
             }
             offset+=NUMBER;
-            System.out.println(offset);
+            //System.out.println(offset);
             findQuery = new BasicDBObject();//
             findQuery.put("title", title);
             findQuery.put("version", new BasicDBObject("$gt", offset).append("$lte", offset + NUMBER));
@@ -261,60 +309,112 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 class CalDiff implements Callable<List<String>> {//差分
     List<String> current_text;
     List<String> prev_text;
-    String title;
-    int version;
-    String name;
-    public CalDiff(List<String> current_text,List<String> prev_text,String title,int version,String name){
+    public CalDiff(List<String> current_text,List<String> prev_text){
         this.current_text=current_text;
         this.prev_text=prev_text;
     }
     @Override
     public List<String> call() {//並列で差分
+        List<String> prechange=new ArrayList<String>();
+        List<String> nowchange=new ArrayList<String>();
+
+
+
         Levenshtein3 d = new Levenshtein3();
         List<String> diff = d.diff(prev_text, current_text);
+        int a=0;
+        int b=0;
+        StringTagger tagger = SenFactory.getStringTagger(null);
+        CompositeTokenFilter ctFilter = new CompositeTokenFilter();
+
+        try {
+            ctFilter.readRules(new BufferedReader(new StringReader("名詞-数")));
+            tagger.addFilter(ctFilter);
+
+            ctFilter.readRules(new BufferedReader(new StringReader("記号-アルファベット")));
+            tagger.addFilter(ctFilter);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        List<String> current_text = new ArrayList<String>();
+        List<String> pret_text = new ArrayList<String>();
+        for (String aDelta : diff) {//順番に見て，単語が残ったか追加されたかから，誰がどこ書いたか
+            //System.out.println(delta.get(x));
+            if (aDelta.equals("+")) {
+                //nowchange.add(parastr.get(a));
+
+                List<Token> tokens = new ArrayList<Token>();
+                try {
+                    tokens=tagger.analyze(current_text.get(a), tokens);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+                for(Token token:tokens){
+                    current_text.add(token.getSurface());
+                }
+                a++;
+            } else if (aDelta.equals("-")) {
+                prechange.add(prev_text.get(b));
+                List<Token> tokens = new ArrayList<Token>();
+                try {
+                    tagger.analyze(prev_text.get(b), tokens);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
+                for(Token token:tokens){
+                    pret_text.add(token.getSurface());
+                }
+                b++;
+            } else if (aDelta.equals("|")) {
+                a++;
+                b++;
+            }
+        }
+        diff=d.diff(pret_text,current_text);
         return diff;
     }
 }
 
 class Kaiseki implements Callable<List<String>> {//形態素解析
-    Wikitext wikitext;//gosenだとなんか駄目だった→kuromojimo別のでダメ
-    public Kaiseki(Wikitext wikitext){
+    String wikitext;//gosenだとなんか駄目だった→kuromojimo別のでダメ
+    public Kaiseki(String wikitext){
         this.wikitext=wikitext;
     }
     @Override
     public List<String> call() {
 
         StringTagger tagger = SenFactory.getStringTagger(null);
-        List<Token> tokens = new ArrayList<Token>();
+        CompositeTokenFilter ctFilter = new CompositeTokenFilter();
+
         try {
-            tagger.analyze(wikitext.getText(), tokens);
+            ctFilter.readRules(new BufferedReader(new StringReader("名詞-数")));
+            tagger.addFilter(ctFilter);
+
+            ctFilter.readRules(new BufferedReader(new StringReader("記号-アルファベット")));
+            tagger.addFilter(ctFilter);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        List<Token> tokens = new ArrayList<Token>();
+        try {
+            tokens=tagger.analyze(wikitext, tokens);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        /*Tokenizer tokenizer = Tokenizer.builder().build();
-        List<Token> tokens = tokenizer.tokenize(wikitext.getText());
-
-
-
-        if(wikitext.getVersion()==94){
-            System.out.println(wikitext.getText());
-        }*/
         List<String> current_text = new ArrayList<String>(tokens.size());
 
        for(Token token:tokens){
-           /*if(wikitext.getVersion()==400){
-                System.out.println(token.getSurface());
-            }*/
+
             current_text.add(token.getSurface());
         }
-       /*for (Token token : tokens) {
-           if(wikitext.getVersion()==94){
-               System.out.println(tokens.size());
-           }
-           current_text.add(token.getSurfaceForm());
-       }*/
+
         return current_text;
     }
 

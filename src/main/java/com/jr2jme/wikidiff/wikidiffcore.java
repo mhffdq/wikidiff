@@ -127,14 +127,6 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
 
                 futurelist.add(exec.submit(new Kaiseki((String)dbObject.get("text"))));
                 namelist.add((String)dbObject.get("name"));
-                
-
-                /*System.out.println(nowchange.size());
-                for(String how:nowchange){
-                    System.out.println(how);
-                }*/
-                //System.out.println(wikitext.getVersion());
-
             }
             cursor.close();
             int i=0;
@@ -177,47 +169,8 @@ public class WikiDiffCore {//Wikipediaのログから差分をとって誰がど
                     List<Integer> rvted=new ArrayList<Integer>();
                     for(int ccc=last-1;ccc>=0;ccc--){//リバート検知
                         int index=(head+ccc)%20;
-                        if(now.compare(resultsarray[index])){
-                            //System.out.println(now.version+":"+resultsarray[index].version);
-                            int dd=0;
-                            int ad=0;
-                            for(String type:delta){
 
-                                if(type.equals("+")){
-                                    //System.out.println(now.getInsertedTerms().getTerms().get(dd));
-                                    now.getWhoWritever().getWhowritelist().get(ad).setEditor(resultsarray[index].getDellist().get(dd));
-                                    //now.whoWrite.getEditors().set(ad,resultsarray[ccc].dellist.get(dd));
-                                    dd++;
-                                    ad++;
-                                }
-                                else if(type.equals("|")){
-                                    ad++;
-                                }
-                            }
-                            BasicDBObject obj = new BasicDBObject();
-                            obj.append("title",title).append("version",version).append("editor",now.getEditor()).append("rvted",rvted).append("edrvted",edrvted);
-                            //dbCollection5.insert(obj);
-                            //now=whowrite(current_editor,prevdata,text,prevtext,delta,offset+ver+1)
-                            break;
-                        }
-                        if(ccc!=last-1) {
-                            if (now.comparehash(resultsarray[index].getText())) {//完全に戻していた場合
-                                int indext = 0;
-                                for (WhoWrite who : now.getWhoWritever().getWhowritelist()) {
-                                    who.setEditor(resultsarray[index].getWhoWritever().getWhowritelist().get(indext).getEditor());
-                                    indext++;
-                                }
-                                for (int cou = ccc + 1; cou < last; cou++) {
-                                    int idx = (head + cou) % 20;
-                                    rvted.add(resultsarray[idx].getInsertedTerms().getVersion());
-                                    edrvted.add(resultsarray[idx].getInsertedTerms().getEditor());
-                                }
-                                BasicDBObject obj = new BasicDBObject();
-                                obj.append("title", title).append("version", version).append("editor", now.getEditor()).append("rvted", rvted).append("edrvted", edrvted);
-                                //dbCollection5.insert(obj);
-                                break;
-                            }
-                        }
+
                     }
 
                     resultsarray[tail%20]=now;

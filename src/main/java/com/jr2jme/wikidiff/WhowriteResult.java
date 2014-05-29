@@ -4,8 +4,6 @@ import com.jr2jme.doc.DeletedTerms;
 import com.jr2jme.doc.InsertedTerms;
 import com.jr2jme.doc.WhoWrite;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,10 +18,13 @@ public class WhoWriteResult {
     private Map<String,DeletedTerms> deletedTerms=null;
     private List<String> dellist=new ArrayList<String>();//消された編集者のリスト
     List<String> delwordcount = new ArrayList<String>();
+    Map<String,Integer> insertmap = new HashMap<String, Integer>();
+    Map<String,Integer> deletemap = new HashMap<String, Integer>();
     String title;
     String editor;
     int version;
     int order=0;
+    boolean isreverted=false;
     //private String editor;
     List<String> text;//比較用ハッシュ
     public WhoWriteResult(String title,List<String> text,String editor,int ver){
@@ -33,9 +34,7 @@ public class WhoWriteResult {
         this.editor=editor;
         this.title=title;
         this.version=ver;
-
         this.text=text;
-
     }
 
 
@@ -45,7 +44,9 @@ public class WhoWriteResult {
     public List<String> getWordcount() {
         return delwordcount;
     }
-
+    public List<String> getDelwordcount(){
+        return delwordcount;
+    }
     public void adddelterm(String preeditor,String term){
 
         dellist.add(preeditor);
@@ -58,11 +59,21 @@ public class WhoWriteResult {
             deletedTerms.put(preeditor,deletedterms);
         }
         delwordcount.add(term);
+        int i=1;
+        if(deletemap.containsKey(term)){
+            i+=deletemap.get(term);
+        }
+        deletemap.put(term,i);
     }
 
     public void addaddterm(String term){
         whoWritever.addwhowrite(new WhoWrite(editor,title,version,term,order));
         insertedTerms.add(term);
+        int i=1;
+        if(insertmap.containsKey(term)){
+            i+=insertmap.get(term);
+        }
+        insertmap.put(term,i);
         order++;
     }
     public void remain(String preeditor,String term){
@@ -83,6 +94,14 @@ public class WhoWriteResult {
 
     public InsertedTerms getInsertedTerms() {
         return insertedTerms;
+    }
+
+    public Map<String, Integer> getDeletemap() {
+        return deletemap;
+    }
+
+    public Map<String, Integer> getInsertmap() {
+        return insertmap;
     }
 
     public Map<String,DeletedTerms> getDeletedTerms() {
@@ -110,47 +129,59 @@ public class WhoWriteResult {
 
         }
     }
+    public void reverted(){
+        this.isreverted=true;
+    }
+    public boolean isreverted(){
+        return isreverted;
+    }
 
     public boolean compare(WhoWriteResult ddd){
 
         if((this.insertedTerms.getTerms().equals(ddd.getWordcount())&&this.getWordcount().equals(ddd.getInsertedTerms().getTerms()))) {//ある編集と逆の操作をしているか
-            //取り消しだった場合
-            /*for(Map.Entry<String,Integer> hoge:this.deletedTerms.wordcount.entrySet()){
-                System.out.println(hoge.getKey());
-            }*/
             return true;
         }else{
             return false;
         }
     }
-    public boolean comparehash(List<String> hash){//同じか
-        return text.equals(hash);
-    }
-    private String String2MD5(String key){
-        byte[] hash = null;
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("MD5");
-            md.update(key.getBytes());
-            hash = md.digest();
-        } catch (NoSuchAlgorithmException e) {
-            //
+    public boolean contain(WhoWriteResult ddd){
+        boolean i=false;
+        for(Map.Entry<String,Integer> entry:ddd.getDeletemap().entrySet()){
+            i=true;
+            if(!this.insertmap.containsKey(entry.getKey())||this.insertmap.get(entry.getKey())<entry.getValue()){
+                return false;
+            }
         }
-        return hashByte2MD5(hash);
+        for(Map.Entry<String,Integer> entry:ddd.getInsertmap().entrySet()){
+            i=true;
+            if(!this.deletemap.containsKey(entry.getKey())||this.deletemap.get(entry.getKey())<entry.getValue()){
+                return false;
+            }
+        }
+        for(Map.Entry<String,Integer> entry:ddd.getDeletemap().entrySet()){
+            this.insertmap.put(entry.getKey(),insertmap.get(entry.getKey())-entry.getValue());
+        }
+        for(Map.Entry<String,Integer> entry:ddd.getInsertmap().entrySet()){
+            this.deletemap.put(entry.getKey(),deletemap.get(entry.getKey())-entry.getValue());
+        }
+        return i;
     }
 
-    private String hashByte2MD5(byte []hash) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte aHash : hash) {
-            if ((0xff & aHash) < 0x10) {
-                hexString.append("0").append(Integer.toHexString((0xFF & aHash)));
-            } else {
-                hexString.append(Integer.toHexString(0xFF & aHash));
+    public boolean contain2(WhoWriteResult ddd){
+        for(Map.Entry<String,Integer> entry:ddd.getDeletemap().entrySet()){
+            if(!this.insertmap.containsKey(entry.getKey())||this.insertmap.get(entry.getKey())<entry.getValue()){
+                return false;
+            }
+        }
+        for(Map.Entry<String,Integer> entry:ddd.getInsertmap().entrySet()){
+            if(!this.deletemap.containsKey(entry.getKey())||this.deletemap.get(entry.getKey())<entry.getValue()){
+                return false;
             }
         }
 
-        return hexString.toString();
+        return true;
     }
+
 
 }
 
